@@ -32,10 +32,12 @@ function createSetlistEditor({
     const main = setlist.songs.filter((s) => !s.is_encore);
     const encore = setlist.songs.filter((s) => s.is_encore);
     const rowHtml = (s) => `<li><span class="row-title">${escapeHtml(s.title)}</span> <span class="row-artist">— ${escapeHtml(s.artist)}</span>${s.note ? `<span class="note">${escapeHtml(s.note)}</span>` : ''}</li>`;
+    const playlistUrl = youtubePlaylistUrl([...main, ...encore].map((s) => s.youtube_url).filter(Boolean));
     return `
       <div class="card">
         <div class="card-title">${escapeHtml(setlist.name || 'Concert')}</div>
         <div class="card-subtitle">${escapeHtml(setlist.venue || '')} · ${formatDate(setlist.concert_date)}</div>
+        ${playlistUrl ? `<div class="song-links"><a class="pill-link youtube" href="${playlistUrl}" target="_blank" rel="noopener">&#9658; Écouter la setlist sur YouTube</a></div>` : ''}
       </div>
       <div class="setlist-section">
         <h3>Setlist</h3>

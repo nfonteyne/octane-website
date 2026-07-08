@@ -32,10 +32,12 @@ function timelineSongRow(song) {
 function timelineConcertBlock(concert) {
   const main = concert.songs.filter((s) => !s.is_encore);
   const encore = concert.songs.filter((s) => s.is_encore);
+  const playlistUrl = youtubePlaylistUrl(concert.songs.map((s) => s.youtube_url).filter(Boolean));
   return `
     <div class="card timeline-concert">
       <div class="card-title">${escapeHtml(concert.name || 'Concert')}</div>
       <div class="card-subtitle">${escapeHtml(concert.venue || '')} · ${formatDate(concert.concert_date)}</div>
+      ${playlistUrl ? `<div class="song-links"><a class="pill-link youtube" href="${playlistUrl}" target="_blank" rel="noopener">&#9658; Écouter la setlist sur YouTube</a></div>` : ''}
 
       <div class="setlist-section">
         <h3>Setlist</h3>

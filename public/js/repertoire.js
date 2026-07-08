@@ -1,8 +1,15 @@
 let me = null;
 let instruments = [];
 let songs = [];
+let searchQuery = '';
 const expanded = new Set();
 const editing = new Set();
+
+function matchesSearch(song, query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return song.title.toLowerCase().includes(q) || song.artist.toLowerCase().includes(q);
+}
 
 async function loadInstruments() {
   instruments = await api.get('/api/instruments');
@@ -131,7 +138,11 @@ function tutorialCardTemplate(t) {
 
 function renderSongs() {
   const container = document.getElementById('songs-list');
-  renderList(container, songs, songCardTemplate, 'Aucun morceau au répertoire pour le moment.');
+  const visibleSongs = songs.filter((s) => matchesSearch(s, searchQuery));
+  const emptyMessage = searchQuery.trim()
+    ? 'Aucun morceau ne correspond à la recherche.'
+    : 'Aucun morceau au répertoire pour le moment.';
+  renderList(container, visibleSongs, songCardTemplate, emptyMessage);
 
   document.querySelectorAll('.toggle-tutorials').forEach((btn) => {
     btn.addEventListener('click', () => onToggleTutorials(parseInt(btn.dataset.id, 10)));
@@ -315,6 +326,10 @@ async function onSongCandidateSelected(candidate) {
     inputId: 'song-title-input',
     dropdownId: 'song-title-dropdown',
     onSelect: onSongCandidateSelected,
+  });
+  document.getElementById('song-search-input').addEventListener('input', (e) => {
+    searchQuery = e.target.value;
+    renderSongs();
   });
   await loadSongs();
 })();

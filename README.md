@@ -237,10 +237,10 @@ erDiagram
 
 | Page | Accès | Description |
 |---|---|---|
-| `/index.html` | Tous (lecture et écriture) | Répertoire des morceaux travaillés, liens/vignettes YouTube et Spotify, tutos embarqués par morceau et par instrument. Ajout avec autocomplete titre/artiste + liens auto-trouvés ([détails](#recherche-automatique-de-morceaux)) |
+| `/index.html` | Tous (lecture et écriture) | Répertoire des morceaux travaillés, avec recherche instantanée (titre/artiste), liens/vignettes YouTube et Spotify, tutos embarqués par morceau et par instrument. Ajout avec autocomplete titre/artiste + liens auto-trouvés ([détails](#recherche-automatique-de-morceaux)) |
 | `/suggestions.html` | Tous | Proposer un morceau (liens YouTube et Spotify + note libre), voter approuver/rejeter avec commentaire (attribué nominativement), ajouter une suggestion au répertoire |
-| `/setlist.html` | Tous (lecture et écriture) | Setlist du prochain concert : choix des morceaux du répertoire, ordre, notes, section rappel |
-| `/history.html`, `/history-detail.html` | Tous (lecture et écriture) | Historique des concerts passés, modifiable (date, morceaux, ordre, rappel) et supprimable. `/history.html` propose deux vues : chronologique (par défaut, tous les concerts détaillés avec YouTube embarqué par morceau, du plus récent au plus ancien) et réduite (liste compacte, comme avant) |
+| `/setlist.html` | Tous (lecture et écriture) | Setlist du prochain concert : choix des morceaux du répertoire, ordre, notes, section rappel, lien "Écouter la setlist sur YouTube" |
+| `/history.html`, `/history-detail.html` | Tous (lecture et écriture) | Historique des concerts passés, modifiable (date, morceaux, ordre, rappel) et supprimable, avec le même lien playlist YouTube. `/history.html` propose deux vues : chronologique (par défaut, tous les concerts détaillés avec YouTube embarqué par morceau, du plus récent au plus ancien) et réduite (liste compacte, comme avant) |
 | `/profile.html` | Chacun voit le sien | Profil issu d'Authentik (nom, avatar, groupes) + votre activité (morceaux ajoutés, suggestions, votes) |
 | `/calendar.html` | Tous (lecture et écriture) | Disponibilités du groupe pour les 3 prochaines semaines (calendrier, filtres par personne, modale par jour) — [détails](#disponibilités-calendrier) |
 
@@ -269,6 +269,12 @@ En sélectionnant une suggestion, l'app tente aussi de retrouver automatiquement
 Si aucune des deux n'est configurée, l'autocomplete titre/artiste marche quand même — seuls les liens ne se remplissent pas tout seuls. Vous pouvez ajouter ces clés à tout moment dans `.env` sans changement de code, juste un redémarrage du conteneur `app`.
 
 Si la recherche ne trouve rien (morceau trop obscur, faute de frappe...), rien ne bloque : titre, artiste et liens restent modifiables à la main comme avant.
+
+## Setlist en playlist YouTube
+
+Sur la page d'un concert (prochain concert ou historique), un lien **"Écouter la setlist sur YouTube"** ouvre tous les morceaux ayant un lien YouTube à la suite, dans l'ordre du programme puis du rappel — via le lecteur "mix" temporaire de YouTube (`watch_videos?video_ids=...`), sans authentification ni appel API. Le lien n'apparaît que si au moins un morceau de la setlist a un lien YouTube renseigné.
+
+Une vraie **playlist Spotify** (persistante, sur un compte Spotify) nécessiterait une autorisation OAuth d'un compte Spotify précis — le Client ID/Secret déjà utilisé pour la recherche automatique ([détails](#recherche-automatique-de-morceaux)) ne permet que la recherche, pas la création de playlists. Pas encore implémenté.
 
 ## Disponibilités (calendrier)
 

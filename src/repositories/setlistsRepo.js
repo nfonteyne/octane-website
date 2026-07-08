@@ -57,7 +57,8 @@ async function findById(id) {
 
 async function findSongs(setlistId) {
   const { rows } = await pool.query(
-    `SELECT ss.id, ss.setlist_id, ss.song_id, s.title, s.artist, ss.position, ss.note, ss.is_encore
+    `SELECT ss.id, ss.setlist_id, ss.song_id, s.title, s.artist, s.youtube_url, s.spotify_url,
+            ss.position, ss.note, ss.is_encore
      FROM setlist_songs ss
      JOIN songs s ON s.id = ss.song_id
      WHERE ss.setlist_id = $1

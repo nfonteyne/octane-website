@@ -301,6 +301,26 @@ h3 { font-size: 1rem; margin: 0 0 0.5rem; }
 
 .section-header h2 { margin: 0; }
 
+.search-bar {
+  position: relative;
+  max-width: 360px;
+  margin: 0 0 1rem;
+}
+
+.search-bar input {
+  padding-left: 2.2rem;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  display: flex;
+  pointer-events: none;
+}
+
 /* ---------- Cards / grids ---------- */
 
 .card-grid {

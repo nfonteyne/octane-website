@@ -40,6 +40,15 @@ function youtubeThumbnailUrl(url) {
   return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null;
 }
 
+// Builds a link that opens several videos back-to-back in YouTube's
+// temporary "mix" player — no API call, no auth, just the video IDs we
+// already have from each song's youtube_url. Returns null if none of the
+// given URLs have a recognizable YouTube video ID.
+function youtubePlaylistUrl(urls) {
+  const ids = urls.map(youtubeVideoId).filter(Boolean);
+  return ids.length ? `https://www.youtube.com/watch_videos?video_ids=${ids.join(',')}` : null;
+}
+
 function initials(name) {
   return String(name || '?')
     .trim()
