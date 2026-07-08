@@ -16,7 +16,11 @@ module.exports = session({
   cookie: {
     httpOnly: true,
     sameSite: 'lax',
-    secure: config.nodeEnv === 'production',
+    // Never mark the cookie Secure in dev-bypass mode: it's meant to be tested
+    // over plain http://localhost, and browsers silently drop Secure cookies
+    // on non-HTTPS origins, which would otherwise cause an endless redirect
+    // back to /auth/login after a seemingly successful dev login.
+    secure: config.nodeEnv === 'production' && !config.devBypassAuth,
     maxAge: 1000 * 60 * 60 * 24 * 30,
   },
 });
