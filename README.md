@@ -149,8 +149,11 @@ Remplir `.env` :
 Puis démarrer :
 
 ```bash
-docker compose up --build
+docker compose pull
+docker compose up -d
 ```
+
+`docker-compose.yml` référence l'image publiée par la CI (`ghcr.io/nfonteyne/octane-website:latest`, voir [CI/CD](#cicd-et-mises-à-jour) ci-dessous) plutôt que de la construire localement — c'est ce fichier que vous utilisez sur votre serveur.
 
 Les migrations SQL (`src/db/migrations/*.sql`) sont exécutées automatiquement au démarrage du conteneur `app`, de façon idempotente (une table `schema_migrations` garde la trace des fichiers déjà appliqués).
 
@@ -192,17 +195,78 @@ Ouvrir `http://localhost:3000` : vous serez redirigé vers `/auth/login`, qui af
 
 Une fois satisfait, repassez `DEV_BYPASS_AUTH=false` et configurez les variables `AUTHENTIK_*`/`OIDC_*` avant de déployer avec `docker-compose.yml` (celui avec le réseau Authentik).
 
+## CI/CD et mises à jour
+
+Le workflow `.github/workflows/ci.yml` se déclenche **uniquement sur push vers `main`** :
+
+```mermaid
+flowchart LR
+    Push["push sur main"] --> Test["Job test\nnpm ci + npm test"]
+    Test -- succès --> Build["Job build-and-push\ndocker build (app seule)"]
+    Build --> Push2["push vers ghcr.io\n:latest"]
+    Push2 -. "détecte le nouveau digest" .-> Watchtower["Watchtower (sur votre serveur)"]
+    Watchtower --> Redeploy["redéploie le conteneur app"]
+```
+
+1. **Job `test`** : installe les dépendances et lance `npm test` (tests unitaires avec le test runner natif de Node — `node --test`, aucune dépendance de test supplémentaire). Actuellement couvre la validation des liens YouTube/Spotify (`test/*.test.js`).
+2. **Job `build-and-push`** (uniquement si les tests passent) : construit **uniquement l'image de l'app** (le `Dockerfile` ne contient que Node/Express, jamais Postgres) et la publie sur `ghcr.io/nfonteyne/octane-website:latest`.
+
+Sur votre serveur, `docker-compose.yml` référence cette image directement (`image: ghcr.io/nfonteyne/octane-website:latest`) au lieu de la construire — Watchtower peut donc la surveiller et la mettre à jour automatiquement dès qu'un nouveau push sur `main` produit une nouvelle image.
+
+Si le repo GitHub est privé, le package `ghcr.io` publié le sera aussi : sur le serveur, faites une fois :
+
+```bash
+echo "$GITHUB_TOKEN" | docker login ghcr.io -u nfonteyne --password-stdin
+```
+
+avec un token GitHub (classic PAT ou fine-grained) ayant le scope `read:packages`.
+
+Pour lancer les tests en local :
+
+```bash
+npm test
+```
+
+## Sauvegarde de la base de données
+
+Aucune sauvegarde automatique n'est intégrée à l'application — c'est volontaire, pour que vous gardiez la main sur votre solution de backup externe. Les données Postgres vivent entièrement dans le volume Docker nommé **`pgdata`** (déclaré dans `docker-compose.yml`, monté sur `/var/lib/postgresql/data` du service `postgres`).
+
+Repérer le nom réel du volume (préfixé par le nom du projet Compose) :
+
+```bash
+docker volume ls | grep pgdata
+docker volume inspect <nom_du_volume>   # donne le Mountpoint sur le disque de l'hôte
+```
+
+Deux façons de sauvegarder depuis l'extérieur :
+
+- **Backup logique (`pg_dump`)**, recommandé, portable entre versions de Postgres :
+  ```bash
+  docker compose exec postgres pg_dump -U octane -d octane -F c -f /tmp/octane.dump
+  docker compose cp postgres:/tmp/octane.dump ./octane_$(date +%Y%m%d).dump
+  ```
+- **Backup brut du volume**, via le `Mountpoint` renvoyé par `docker volume inspect`, ou avec un conteneur utilitaire :
+  ```bash
+  docker run --rm -v <nom_du_volume>:/data -v "$(pwd)/backups":/backup alpine \
+    tar czf /backup/pgdata_$(date +%Y%m%d).tar.gz -C /data .
+  ```
+
+Branchez l'une de ces commandes sur votre outil de backup externe habituel (cron, Veeam, Borg, etc.).
+
 ## Structure du projet
 
 ```
 octane-website/
-├── Dockerfile, docker-compose.yml
+├── .github/workflows/ci.yml   # tests + build/push de l'image Docker sur push main
+├── Dockerfile, docker-compose.yml, docker-compose.dev.yml
+├── test/               # tests unitaires (node --test)
 ├── src/
 │   ├── server.js, app.js, config.js
 │   ├── db/            # pool Postgres, migration runner, migrations SQL
 │   ├── auth/          # OIDC (Authentik), session, middleware, routes /auth
 │   ├── routes/        # routes API /api/*
-│   └── repositories/  # accès SQL par table
+│   ├── repositories/  # accès SQL par table
+│   └── lib/           # helpers purs (validation YouTube/Spotify) — couverts par les tests
 └── public/
     ├── *.html          # une page par fonctionnalité
     ├── css/style.css

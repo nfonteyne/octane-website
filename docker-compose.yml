@@ -1,6 +1,8 @@
 services:
   app:
-    build: .
+    # Built and pushed by .github/workflows/ci.yml on every push to main.
+    # Watchtower on the server picks up new digests on this tag automatically.
+    image: ${APP_IMAGE:-ghcr.io/nfonteyne/octane-website:latest}
     restart: unless-stopped
     env_file: .env
     ports:
