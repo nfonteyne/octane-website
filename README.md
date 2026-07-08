@@ -4,6 +4,127 @@ Application interne pour le groupe : répertoire de morceaux travaillés (avec l
 
 Stack 100% JavaScript : backend Node.js/Express servant des pages HTML/CSS/JS vanilla (pas de framework front, pas de build step) + API REST, PostgreSQL, authentification via OpenID Connect contre une instance Authentik existante.
 
+## Démarrage rapide (serveur avec Traefik)
+
+Ce qui suit correspond au déploiement réel : Traefik en reverse proxy, Authentik sur le même réseau Docker externe `traefik-proxy`, l'app exposée sur `octane.dandrove.com`, l'image tirée de `ghcr.io` (voir [CI/CD](#cicd-et-mises-à-jour)).
+
+```bash
+git clone https://github.com/nfonteyne/octane-website.git
+cd octane-website
+cp .env.example .env
+```
+
+Éditer `.env` (au minimum) :
+
+```
+DATABASE_URL=postgres://octane:changeme@postgres:5432/octane
+POSTGRES_PASSWORD=changeme
+SESSION_SECRET=une-longue-chaine-aleatoire
+
+AUTHENTIK_ISSUER_URL=http://authentik-server:9000/application/o/octane-website/
+OIDC_CLIENT_ID=...
+OIDC_CLIENT_SECRET=...
+OIDC_REDIRECT_URI=https://octane.dandrove.com/auth/callback
+ADMIN_GROUP_NAME=octane-admins
+
+TRAEFIK_NETWORK_NAME=traefik-proxy
+APP_DOMAIN=octane.dandrove.com
+```
+
+`AUTHENTIK_ISSUER_URL` utilise ici le nom du conteneur Authentik sur le réseau `traefik-proxy` (remplacez `authentik-server` par le vrai nom de service de votre stack Authentik — `docker ps` sur cette stack vous le donnera) plutôt que l'URL publique, pour éviter un aller-retour inutile par Traefik. L'URL publique fonctionne aussi si vous préférez.
+
+Si le réseau `traefik-proxy` n'existe pas encore (il devrait déjà exister si Authentik tourne dessus) :
+
+```bash
+docker network create traefik-proxy
+```
+
+Puis démarrer :
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+`docker-compose.yml` (à la racine du repo) est déjà prêt pour ce cas précis :
+
+```yaml
+services:
+  app:
+    image: ${APP_IMAGE:-ghcr.io/nfonteyne/octane-website:latest}
+    container_name: octane-app
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - postgres
+    networks:
+      - default
+      - traefik-proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-proxy"
+      - "traefik.http.routers.octane.rule=Host(`${APP_DOMAIN:-octane.dandrove.com}`)"
+      - "traefik.http.routers.octane.entrypoints=websecure"
+      - "traefik.http.routers.octane.tls.certresolver=myresolver"
+      - "traefik.http.services.octane.loadbalancer.server.port=3000"
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: octane
+      POSTGRES_USER: octane
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - default
+
+networks:
+  default:
+  traefik-proxy:
+    external: true
+    name: ${TRAEFIK_NETWORK_NAME:-traefik-proxy}
+
+volumes:
+  pgdata:
+```
+
+Pas de port publié sur l'hôte : Traefik parle directement au conteneur `octane-app` sur le réseau `traefik-proxy`, port 3000 (celui écouté par Express en interne).
+
+## Intégration Traefik
+
+Le `docker-compose.yml` ci-dessus utilise déjà les **labels Docker** (option recommandée). Deux cas selon la configuration de votre Traefik :
+
+### Option A — provider Docker (labels), déjà en place
+
+Si Traefik tourne avec le provider Docker activé (`--providers.docker=true` et accès au socket Docker) et surveille le réseau `traefik-proxy`, rien à faire de plus : les labels du service `app` suffisent. Vérifiez juste que :
+- Traefik est bien attaché au réseau `traefik-proxy`,
+- l'entrypoint `websecure` et le `certResolver` `myresolver` correspondent aux noms utilisés dans votre configuration Traefik (adaptez les labels sinon).
+
+### Option B — provider fichier (dynamic config)
+
+Si votre Traefik est plutôt piloté par des fichiers de configuration dynamique (comme votre exemple `guitar-scale`), retirez les `labels` du service `app` dans `docker-compose.yml` et ajoutez ce fichier à votre dossier de conf dynamique Traefik (ex: `dynamic/octane.yml`) :
+
+```yaml
+http:
+  routers:
+    octane:
+      entryPoints: ["websecure"]
+      rule: Host(`octane.dandrove.com`)
+      service: octane-service
+      tls:
+        certResolver: myresolver
+
+  services:
+    octane-service:
+      loadBalancer:
+        servers:
+          - url: "http://octane-app:3000"
+```
+
+`octane-app` est le `container_name` fixé dans `docker-compose.yml` — Docker en fait un nom résolvable en DNS pour tout conteneur attaché au même réseau (`traefik-proxy`), donc Traefik peut l'atteindre directement par ce nom sans passer par le provider Docker.
+
 ## Architecture
 
 ```mermaid
@@ -116,44 +237,33 @@ Le rôle admin est déterminé par un claim `groups` renvoyé par Authentik (voi
 ## Prérequis
 
 - Docker + Docker Compose
-- Une instance Authentik déjà en place, avec un réseau Docker accessible depuis ce projet
+- Une instance Authentik déjà en place
+- Un reverse proxy Traefik déjà en place, avec un réseau Docker externe partagé (`traefik-proxy` dans nos exemples) sur lequel Authentik est également connecté
 
 ## Configuration Authentik
 
-1. Créer un **Provider** OAuth2/OIDC dans Authentik, avec comme redirect URI la valeur que vous mettrez dans `OIDC_REDIRECT_URI` (ex: `https://octane.example.com/auth/callback`).
+1. Créer un **Provider** OAuth2/OIDC dans Authentik, avec comme redirect URI la valeur que vous mettrez dans `OIDC_REDIRECT_URI` (ex: `https://octane.dandrove.com/auth/callback`).
 2. Créer une **Application** Authentik pointant vers ce provider.
 3. S'assurer qu'un **scope mapping** expose un claim `groups` dans l'ID token (Authentik a un mapping `groups` intégré dans les versions récentes, sinon créer un mapping personnalisé renvoyant `request.user.ak_groups.all()`).
 4. Créer un **groupe** Authentik (ex: `octane-admins`) et y ajouter les membres qui doivent être admins de l'application.
 5. Noter le Client ID / Client Secret du provider.
 
-## Installation
+## Variables d'environnement (référence complète)
 
-```bash
-cp .env.example .env
-```
-
-Remplir `.env` :
+Le [Démarrage rapide](#démarrage-rapide-serveur-avec-traefik) ci-dessus couvre le cas concret. Référence complète des variables de `.env` :
 
 | Variable | Description |
 |---|---|
 | `DATABASE_URL` | Chaîne de connexion Postgres (déjà cohérente avec le service `postgres` du compose) |
 | `POSTGRES_PASSWORD` | Mot de passe du service Postgres |
 | `SESSION_SECRET` | Chaîne aléatoire longue pour signer les cookies de session |
-| `AUTHENTIK_ISSUER_URL` | URL d'issuer OIDC de l'application Authentik (ex: `https://auth.example.com/application/o/octane-website/`) |
+| `AUTHENTIK_ISSUER_URL` | URL d'issuer OIDC de l'application Authentik (interne, ex: `http://authentik-server:9000/application/o/octane-website/`, ou publique) |
 | `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | Identifiants du provider Authentik |
-| `OIDC_REDIRECT_URI` | URL publique de callback, doit correspondre à celle configurée dans Authentik |
+| `OIDC_REDIRECT_URI` | URL publique de callback, doit correspondre à celle configurée dans Authentik (ex: `https://octane.dandrove.com/auth/callback`) |
 | `ADMIN_GROUP_NAME` | Nom du groupe Authentik dont les membres deviennent admins |
-| `AUTHENTIK_NETWORK_NAME` | Nom du réseau Docker de votre stack Authentik existante (vérifier avec `docker network ls`) |
-| `APP_PORT` | Port exposé sur l'hôte (défaut `3000`) |
-
-Puis démarrer :
-
-```bash
-docker compose pull
-docker compose up -d
-```
-
-`docker-compose.yml` référence l'image publiée par la CI (`ghcr.io/nfonteyne/octane-website:latest`, voir [CI/CD](#cicd-et-mises-à-jour) ci-dessous) plutôt que de la construire localement — c'est ce fichier que vous utilisez sur votre serveur.
+| `TRAEFIK_NETWORK_NAME` | Nom du réseau Docker externe partagé avec Traefik et Authentik (défaut `traefik-proxy`) |
+| `APP_DOMAIN` | Nom de domaine public utilisé par Traefik pour router vers l'app (ex: `octane.dandrove.com`) |
+| `APP_PORT` | Port hôte utilisé uniquement par `docker-compose.dev.yml` (test local sans Traefik) |
 
 Les migrations SQL (`src/db/migrations/*.sql`) sont exécutées automatiquement au démarrage du conteneur `app`, de façon idempotente (une table `schema_migrations` garde la trace des fichiers déjà appliqués).
 

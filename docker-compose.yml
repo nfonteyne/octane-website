@@ -3,15 +3,24 @@ services:
     # Built and pushed by .github/workflows/ci.yml on every push to main.
     # Watchtower on the server picks up new digests on this tag automatically.
     image: ${APP_IMAGE:-ghcr.io/nfonteyne/octane-website:latest}
+    container_name: octane-app
     restart: unless-stopped
     env_file: .env
-    ports:
-      - "${APP_PORT:-3000}:3000"
     depends_on:
       - postgres
     networks:
       - default
-      - authentik
+      - traefik-proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-proxy"
+      - "traefik.http.routers.octane.rule=Host(`${APP_DOMAIN:-octane.dandrove.com}`)"
+      - "traefik.http.routers.octane.entrypoints=websecure"
+      - "traefik.http.routers.octane.tls.certresolver=myresolver"
+      - "traefik.http.services.octane.loadbalancer.server.port=3000"
+    # No host port published: Traefik reaches the container directly over
+    # traefik-proxy. Add "ports: ['3000:3000']" temporarily if you need
+    # to hit the app straight from the host while debugging.
 
   postgres:
     image: postgres:16-alpine
@@ -27,9 +36,9 @@ services:
 
 networks:
   default:
-  authentik:
+  traefik-proxy:
     external: true
-    name: ${AUTHENTIK_NETWORK_NAME:-authentik_default}
+    name: ${TRAEFIK_NETWORK_NAME:-traefik-proxy}
 
 volumes:
   pgdata:
