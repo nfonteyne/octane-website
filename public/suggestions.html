@@ -12,18 +12,22 @@
 </header>
 <main>
   <h1>Suggestions de morceaux</h1>
+  <p class="page-subtitle">Proposez un morceau et votez sur les suggestions des autres — chaque vote est nominatif.</p>
   <div id="error"></div>
 
-  <h2>Proposer un morceau</h2>
-  <form id="add-suggestion-form" class="inline-form">
-    <label>Titre <input name="title" required></label>
-    <label>Artiste <input name="artist"></label>
-    <label>Lien YouTube <input name="youtubeUrl" type="url" required placeholder="https://youtube.com/watch?v=..."></label>
-    <button type="submit">Proposer</button>
-  </form>
+  <div class="panel">
+    <h2 style="margin-top:0">Proposer un morceau</h2>
+    <form id="add-suggestion-form" class="stacked-form">
+      <label>Titre <input name="title" required></label>
+      <label>Artiste <input name="artist"></label>
+      <label>Lien YouTube <input name="youtubeUrl" type="url" required placeholder="https://youtube.com/watch?v=..."></label>
+      <label>Note / détails <textarea name="description" placeholder="Pourquoi ce morceau, difficulté, arrangement envisagé..."></textarea></label>
+      <button type="submit">Proposer</button>
+    </form>
+  </div>
 
   <h2>Toutes les suggestions</h2>
-  <div id="suggestions-list"></div>
+  <div id="suggestions-list" class="card-grid"></div>
 </main>
 
 <script src="/js/api.js"></script>

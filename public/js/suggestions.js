@@ -11,23 +11,40 @@ function statusLabel(status) {
   return { pending: 'En attente', approved: 'Approuvé', rejected: 'Rejeté' }[status] || status;
 }
 
+function suggestionThumbTemplate(s) {
+  const thumb = youtubeThumbnailUrl(s.youtube_url);
+  if (thumb) {
+    return `
+      <div class="song-thumb">
+        <img src="${thumb}" alt="${escapeHtml(s.title)}" loading="lazy">
+        <a class="play-overlay" href="${escapeHtml(s.youtube_url)}" target="_blank" rel="noopener" title="Écouter sur YouTube">&#9658;</a>
+      </div>
+    `;
+  }
+  return `<div class="song-thumb placeholder">&#9835;</div>`;
+}
+
 function suggestionTemplate(s) {
   const isOpen = expanded.has(s.id);
-  const embed = youtubeEmbedUrl(s.youtube_url);
   return `
     <div class="card" data-suggestion-id="${s.id}">
-      <div class="card-header">
-        <div>
-          <div class="card-title">${escapeHtml(s.title)}${s.artist ? ` — ${escapeHtml(s.artist)}` : ''}</div>
-          <div class="card-subtitle">Proposé par ${escapeHtml(s.suggested_by_name)} · ${statusLabel(s.status)}</div>
+      <div class="song-card">
+        ${suggestionThumbTemplate(s)}
+        <div class="song-body">
+          <div class="card-header">
+            <div>
+              <div class="card-title">${escapeHtml(s.title)}${s.artist ? ` — ${escapeHtml(s.artist)}` : ''}</div>
+              <div class="card-subtitle">Proposé par ${escapeHtml(s.suggested_by_name)} · ${statusLabel(s.status)}</div>
+            </div>
+          </div>
+          <div class="vote-tally">
+            <span class="approve">✔ ${s.approve_count}</span>
+            <span class="reject">✘ ${s.reject_count}</span>
+          </div>
+          <button class="secondary icon-btn toggle-detail" data-id="${s.id}">${isOpen ? 'Masquer' : 'Voir / voter'}</button>
         </div>
-        <button class="secondary toggle-detail" data-id="${s.id}">${isOpen ? 'Masquer' : 'Voir / voter'}</button>
       </div>
-      <div class="vote-tally">
-        <span class="approve">✔ ${s.approve_count}</span>
-        <span class="reject">✘ ${s.reject_count}</span>
-      </div>
-      <div class="detail-panel" style="${isOpen ? '' : 'display:none'}" data-detail-for="${s.id}">
+      <div class="detail-panel panel" style="${isOpen ? '' : 'display:none'}" data-detail-for="${s.id}">
         <p class="empty">Chargement…</p>
       </div>
     </div>
@@ -39,6 +56,7 @@ function detailTemplate(s) {
   const myVote = s.votes.find((v) => v.user_id === me.id);
   return `
     ${embed ? `<div class="youtube-embed"><iframe src="${embed}" allowfullscreen></iframe></div>` : `<p><a href="${escapeHtml(s.youtube_url)}" target="_blank" rel="noopener">${escapeHtml(s.youtube_url)}</a></p>`}
+    ${s.description ? `<div class="suggestion-note">${escapeHtml(s.description)}</div>` : ''}
 
     <form class="inline-form vote-form" data-id="${s.id}">
       <label>Mon vote
@@ -69,7 +87,7 @@ function detailTemplate(s) {
 function voteItemTemplate(v) {
   const icon = v.vote === 'approve' ? '✔' : '✘';
   return `
-    <div class="vote-item">
+    <div class="vote-item ${v.vote}">
       <span class="voter">${escapeHtml(v.voter_name)}</span> ${icon}
       ${v.comment ? `— ${escapeHtml(v.comment)}` : ''}
     </div>
@@ -170,8 +188,9 @@ async function onAddSuggestion(e) {
   const title = form.title.value.trim();
   const artist = form.artist.value.trim();
   const youtubeUrl = form.youtubeUrl.value.trim();
+  const description = form.description.value.trim();
   try {
-    await api.post('/api/suggestions', { title, artist, youtubeUrl });
+    await api.post('/api/suggestions', { title, artist, youtubeUrl, description });
     form.reset();
     await loadSuggestions();
   } catch (err) {

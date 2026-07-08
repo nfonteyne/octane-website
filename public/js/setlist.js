@@ -1,17 +1,13 @@
 let me = null;
 let allSongs = [];
 let setlist = null;
-let editRows = [];
+let mainRows = [];
+let encoreRows = [];
+let addSongId = null;
 
 function formatDate(dateStr) {
   const d = new Date(dateStr);
   return d.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-}
-
-function songOptions(selectedId) {
-  return allSongs
-    .map((s) => `<option value="${s.id}" ${s.id === selectedId ? 'selected' : ''}>${escapeHtml(s.title)} — ${escapeHtml(s.artist)}</option>`)
-    .join('');
 }
 
 function readOnlyView() {
@@ -25,55 +21,16 @@ function readOnlyView() {
     <div class="setlist-section">
       <h3>Setlist</h3>
       ${main.length
-        ? `<ol class="setlist">${main.map((s) => `<li>${escapeHtml(s.title)} — ${escapeHtml(s.artist)}${s.note ? `<span class="note">${escapeHtml(s.note)}</span>` : ''}</li>`).join('')}</ol>`
+        ? `<ol class="setlist">${main.map((s) => `<li><span class="row-title">${escapeHtml(s.title)}</span> <span class="row-artist">— ${escapeHtml(s.artist)}</span>${s.note ? `<span class="note">${escapeHtml(s.note)}</span>` : ''}</li>`).join('')}</ol>`
         : '<p class="empty">Aucun morceau pour le moment.</p>'}
     </div>
     <div class="setlist-section">
       <h3>Rappel</h3>
       ${encore.length
-        ? `<ol class="setlist">${encore.map((s) => `<li>${escapeHtml(s.title)} — ${escapeHtml(s.artist)}${s.note ? `<span class="note">${escapeHtml(s.note)}</span>` : ''}</li>`).join('')}</ol>`
+        ? `<ol class="setlist">${encore.map((s) => `<li><span class="row-title">${escapeHtml(s.title)}</span> <span class="row-artist">— ${escapeHtml(s.artist)}</span>${s.note ? `<span class="note">${escapeHtml(s.note)}</span>` : ''}</li>`).join('')}</ol>`
         : '<p class="empty">Aucun morceau de rappel prévu.</p>'}
     </div>
-    ${me.isAdmin ? '<button id="edit-btn" class="secondary">Modifier la setlist</button>' : ''}
-  `;
-}
-
-function editRowTemplate(row, index) {
-  return `
-    <div class="card" data-row-index="${index}">
-      <div class="inline-form">
-        <label>Morceau
-          <select data-field="songId">${songOptions(row.songId)}</select>
-        </label>
-        <label>Position <input type="number" min="1" value="${row.position}" data-field="position" style="width:4rem"></label>
-        <label>Note <input value="${escapeHtml(row.note || '')}" data-field="note"></label>
-        <label><input type="checkbox" ${row.isEncore ? 'checked' : ''} data-field="isEncore"> Rappel</label>
-        <button type="button" class="danger remove-row" data-index="${index}">Retirer</button>
-      </div>
-    </div>
-  `;
-}
-
-function editView() {
-  return `
-    <div class="card">
-      <h3>Détails du concert</h3>
-      <form id="meta-form" class="inline-form">
-        <label>Nom <input name="name" value="${escapeHtml(setlist?.name || '')}"></label>
-        <label>Lieu <input name="venue" value="${escapeHtml(setlist?.venue || '')}"></label>
-        <label>Date <input type="date" name="concertDate" value="${setlist ? setlist.concert_date.slice(0, 10) : ''}" required></label>
-        <button type="submit">${setlist ? 'Enregistrer' : 'Créer le concert'}</button>
-      </form>
-    </div>
-    ${setlist ? `
-    <div id="rows-container">
-      ${editRows.map(editRowTemplate).join('')}
-    </div>
-    <div class="inline-form">
-      <button type="button" id="add-row-btn" class="secondary">Ajouter un morceau</button>
-      <button type="button" id="save-songs-btn">Enregistrer la setlist</button>
-      <button type="button" id="cancel-edit-btn" class="secondary">Annuler</button>
-    </div>` : ''}
+    ${me.isAdmin ? '<button id="edit-btn" class="secondary" style="margin-top:1rem">Modifier la setlist</button>' : ''}
   `;
 }
 
@@ -81,7 +38,7 @@ function renderReadOnly() {
   const container = document.getElementById('content');
   if (!setlist) {
     container.innerHTML = me.isAdmin
-      ? `<p class="empty">Aucun concert à venir.</p>${editView()}`
+      ? `<p class="empty">Aucun concert à venir.</p>${metaFormTemplate()}`
       : '<p class="empty">Aucun concert à venir pour le moment.</p>';
     if (me.isAdmin) attachMetaFormHandler();
     return;
@@ -91,14 +48,93 @@ function renderReadOnly() {
   if (editBtn) editBtn.addEventListener('click', enterEditMode);
 }
 
+function metaFormTemplate() {
+  return `
+    <div class="panel">
+      <h3>${setlist ? 'Détails du concert' : 'Créer le prochain concert'}</h3>
+      <form id="meta-form" class="inline-form">
+        <label>Nom <input name="name" value="${escapeHtml(setlist?.name || '')}"></label>
+        <label>Lieu <input name="venue" value="${escapeHtml(setlist?.venue || '')}"></label>
+        <label>Date <input type="date" name="concertDate" value="${setlist ? setlist.concert_date.slice(0, 10) : ''}" required></label>
+        <button type="submit">${setlist ? 'Enregistrer' : 'Créer le concert'}</button>
+      </form>
+    </div>
+  `;
+}
+
+function usedSongIds() {
+  return new Set([...mainRows, ...encoreRows].map((r) => r.songId));
+}
+
+function availableSongOptions() {
+  const used = usedSongIds();
+  const available = allSongs.filter((s) => !used.has(s.id));
+  if (!available.length) return '<option value="">(tous les morceaux sont déjà dans la setlist)</option>';
+  return available.map((s) => `<option value="${s.id}">${escapeHtml(s.title)} — ${escapeHtml(s.artist)}</option>`).join('');
+}
+
+function rowTemplate(row, index, section, total) {
+  return `
+    <div class="setlist-row" data-section="${section}" data-index="${index}">
+      <div class="row-index">${index + 1}</div>
+      <div class="row-main">
+        <div class="row-title">${escapeHtml(row.title)}</div>
+        <div class="row-artist">${escapeHtml(row.artist)}</div>
+      </div>
+      <input class="row-note-input" data-field="note" placeholder="Note (optionnel)" value="${escapeHtml(row.note || '')}">
+      <div class="row-actions">
+        <button type="button" class="secondary icon-btn move-up" ${index === 0 ? 'disabled' : ''} title="Monter">&#8593;</button>
+        <button type="button" class="secondary icon-btn move-down" ${index === total - 1 ? 'disabled' : ''} title="Descendre">&#8595;</button>
+        <button type="button" class="secondary icon-btn move-section" title="${section === 'main' ? 'Déplacer en rappel' : 'Déplacer au programme'}">${section === 'main' ? '&#8677; Rappel' : '&#8676; Programme'}</button>
+        <button type="button" class="danger icon-btn remove-row" title="Retirer">&times;</button>
+      </div>
+    </div>
+  `;
+}
+
+function editView() {
+  return `
+    ${metaFormTemplate()}
+    ${setlist ? `
+    <div class="panel">
+      <h3>Ajouter un morceau du répertoire</h3>
+      <form id="add-song-form" class="inline-form">
+        <label>Morceau
+          <select id="add-song-select">${availableSongOptions()}</select>
+        </label>
+        <button type="button" id="add-to-main-btn" class="secondary">Ajouter au programme</button>
+        <button type="button" id="add-to-encore-btn" class="secondary">Ajouter au rappel</button>
+      </form>
+    </div>
+
+    <div class="setlist-section">
+      <h3>Programme principal</h3>
+      <div class="setlist-rows" id="main-rows">
+        ${mainRows.length ? mainRows.map((r, i) => rowTemplate(r, i, 'main', mainRows.length)).join('') : '<p class="empty">Aucun morceau. Ajoutez-en depuis le répertoire ci-dessus.</p>'}
+      </div>
+    </div>
+
+    <div class="setlist-section">
+      <h3>Rappel</h3>
+      <div class="setlist-rows" id="encore-rows">
+        ${encoreRows.length ? encoreRows.map((r, i) => rowTemplate(r, i, 'encore', encoreRows.length)).join('') : '<p class="empty">Aucun morceau de rappel prévu.</p>'}
+      </div>
+    </div>
+
+    <div class="inline-form" style="margin-top:1.25rem">
+      <button type="button" id="save-songs-btn">Enregistrer la setlist</button>
+      <button type="button" id="cancel-edit-btn" class="secondary">Retour</button>
+    </div>` : ''}
+  `;
+}
+
 function enterEditMode() {
-  editRows = setlist.songs.map((s) => ({
-    setlistSongId: s.id,
-    songId: s.song_id,
-    position: s.position,
-    note: s.note,
-    isEncore: s.is_encore,
-  }));
+  mainRows = setlist.songs
+    .filter((s) => !s.is_encore)
+    .map((s) => ({ setlistSongId: s.id, songId: s.song_id, title: s.title, artist: s.artist, note: s.note }));
+  encoreRows = setlist.songs
+    .filter((s) => s.is_encore)
+    .map((s) => ({ setlistSongId: s.id, songId: s.song_id, title: s.title, artist: s.artist, note: s.note }));
   renderEdit();
 }
 
@@ -132,52 +168,79 @@ function attachMetaFormHandler() {
   });
 }
 
+function rowsForSection(section) {
+  return section === 'main' ? mainRows : encoreRows;
+}
+
 function attachEditHandlers() {
-  document.querySelectorAll('.remove-row').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      editRows.splice(parseInt(btn.dataset.index, 10), 1);
-      renderEdit();
-    });
-  });
-  document.querySelectorAll('[data-row-index]').forEach((rowEl) => {
-    const index = parseInt(rowEl.dataset.rowIndex, 10);
-    rowEl.querySelectorAll('[data-field]').forEach((input) => {
-      input.addEventListener('change', () => {
-        const field = input.dataset.field;
-        if (field === 'isEncore') editRows[index][field] = input.checked;
-        else if (field === 'position') editRows[index][field] = parseInt(input.value, 10);
-        else if (field === 'songId') editRows[index][field] = parseInt(input.value, 10);
-        else editRows[index][field] = input.value;
-      });
-    });
-  });
-  const addBtn = document.getElementById('add-row-btn');
-  if (addBtn) {
-    addBtn.addEventListener('click', () => {
-      const nextPos = editRows.filter((r) => !r.isEncore).length + 1;
-      editRows.push({ songId: allSongs[0]?.id, position: nextPos, note: '', isEncore: false });
-      renderEdit();
-    });
+  const addSelect = document.getElementById('add-song-select');
+  const addToMain = document.getElementById('add-to-main-btn');
+  const addToEncore = document.getElementById('add-to-encore-btn');
+  if (addSelect) {
+    if (!addSelect.value) addSongId = null;
+    addSelect.addEventListener('change', () => { addSongId = addSelect.value ? parseInt(addSelect.value, 10) : null; });
   }
+  if (addToMain) addToMain.addEventListener('click', () => addSongToSection('main', addSelect));
+  if (addToEncore) addToEncore.addEventListener('click', () => addSongToSection('encore', addSelect));
+
+  document.querySelectorAll('.setlist-row').forEach((rowEl) => {
+    const section = rowEl.dataset.section;
+    const index = parseInt(rowEl.dataset.index, 10);
+    const rows = rowsForSection(section);
+
+    rowEl.querySelector('.row-note-input').addEventListener('change', (e) => {
+      rows[index].note = e.target.value;
+    });
+    rowEl.querySelector('.move-up')?.addEventListener('click', () => {
+      if (index === 0) return;
+      [rows[index - 1], rows[index]] = [rows[index], rows[index - 1]];
+      renderEdit();
+    });
+    rowEl.querySelector('.move-down')?.addEventListener('click', () => {
+      if (index === rows.length - 1) return;
+      [rows[index + 1], rows[index]] = [rows[index], rows[index + 1]];
+      renderEdit();
+    });
+    rowEl.querySelector('.move-section').addEventListener('click', () => {
+      const [row] = rows.splice(index, 1);
+      if (section === 'main') encoreRows.push(row);
+      else mainRows.push(row);
+      renderEdit();
+    });
+    rowEl.querySelector('.remove-row').addEventListener('click', () => {
+      rows.splice(index, 1);
+      renderEdit();
+    });
+  });
+
   const saveBtn = document.getElementById('save-songs-btn');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', async () => {
-      try {
-        const payload = editRows.map((r) => ({
-          songId: r.songId,
-          position: r.position,
-          note: r.note,
-          isEncore: !!r.isEncore,
-        }));
-        setlist = await api.put(`/api/setlists/${setlist.id}/songs`, { songs: payload });
-        renderReadOnly();
-      } catch (err) {
-        showError(err.message);
-      }
-    });
-  }
+  if (saveBtn) saveBtn.addEventListener('click', onSaveSongs);
   const cancelBtn = document.getElementById('cancel-edit-btn');
   if (cancelBtn) cancelBtn.addEventListener('click', renderReadOnly);
+}
+
+function addSongToSection(section, selectEl) {
+  const songId = selectEl.value ? parseInt(selectEl.value, 10) : null;
+  if (!songId) return;
+  const song = allSongs.find((s) => s.id === songId);
+  if (!song) return;
+  const row = { setlistSongId: null, songId: song.id, title: song.title, artist: song.artist, note: '' };
+  if (section === 'main') mainRows.push(row);
+  else encoreRows.push(row);
+  renderEdit();
+}
+
+async function onSaveSongs() {
+  try {
+    const payload = [
+      ...mainRows.map((r, i) => ({ songId: r.songId, position: i + 1, note: r.note, isEncore: false })),
+      ...encoreRows.map((r, i) => ({ songId: r.songId, position: i + 1, note: r.note, isEncore: true })),
+    ];
+    setlist = await api.put(`/api/setlists/${setlist.id}/songs`, { songs: payload });
+    renderReadOnly();
+  } catch (err) {
+    showError(err.message);
+  }
 }
 
 function showError(message) {

@@ -12,20 +12,23 @@
 </header>
 <main>
   <h1>Répertoire</h1>
+  <p class="page-subtitle">Les morceaux travaillés par le groupe, avec liens d'écoute et tutos par instrument.</p>
   <div id="error"></div>
 
-  <div id="admin-add-song" style="display:none">
-    <h2>Ajouter un morceau</h2>
-    <form id="add-song-form" class="inline-form">
+  <div id="admin-add-song" class="panel" style="display:none">
+    <h2 style="margin-top:0">Ajouter un morceau</h2>
+    <form id="add-song-form" class="stacked-form">
       <label>Titre <input name="title" required></label>
       <label>Artiste <input name="artist" required></label>
       <label>Notes <input name="notes"></label>
-      <button type="submit">Ajouter</button>
+      <label>Lien YouTube <input name="youtubeUrl" type="url" placeholder="https://youtube.com/watch?v=..."></label>
+      <label>Lien Spotify <input name="spotifyUrl" type="url" placeholder="https://open.spotify.com/track/..."></label>
+      <button type="submit">Ajouter au répertoire</button>
     </form>
   </div>
 
   <h2>Morceaux travaillés</h2>
-  <div id="songs-list"></div>
+  <div id="songs-list" class="card-grid"></div>
 </main>
 
 <script src="/js/api.js"></script>

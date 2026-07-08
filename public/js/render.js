@@ -12,19 +12,30 @@ function escapeHtml(str) {
   }[c]));
 }
 
-function youtubeEmbedUrl(url) {
+function youtubeVideoId(url) {
   try {
     const parsed = new URL(url);
-    let videoId = null;
     if (parsed.hostname === 'youtu.be') {
-      videoId = parsed.pathname.slice(1);
-    } else if (parsed.pathname === '/watch') {
-      videoId = parsed.searchParams.get('v');
-    } else if (parsed.pathname.startsWith('/embed/')) {
-      videoId = parsed.pathname.split('/embed/')[1];
+      return parsed.pathname.slice(1) || null;
     }
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    if (parsed.pathname === '/watch') {
+      return parsed.searchParams.get('v');
+    }
+    if (parsed.pathname.startsWith('/embed/')) {
+      return parsed.pathname.split('/embed/')[1] || null;
+    }
+    return null;
   } catch {
     return null;
   }
+}
+
+function youtubeEmbedUrl(url) {
+  const videoId = youtubeVideoId(url);
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+}
+
+function youtubeThumbnailUrl(url) {
+  const videoId = youtubeVideoId(url);
+  return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null;
 }

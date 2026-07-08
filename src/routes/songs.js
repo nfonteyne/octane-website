@@ -2,8 +2,16 @@ const express = require('express');
 const songsRepo = require('../repositories/songsRepo');
 const { requireAdmin } = require('../auth/middleware');
 const asyncHandler = require('../lib/asyncHandler');
+const { isValidYoutubeUrl } = require('../lib/youtube');
+const { isValidSpotifyUrl } = require('../lib/spotify');
 
 const router = express.Router();
+
+function validateLinks(youtubeUrl, spotifyUrl) {
+  if (youtubeUrl && !isValidYoutubeUrl(youtubeUrl)) return 'invalid_youtube_url';
+  if (spotifyUrl && !isValidSpotifyUrl(spotifyUrl)) return 'invalid_spotify_url';
+  return null;
+}
 
 router.get(
   '/',
@@ -26,11 +34,20 @@ router.post(
   '/',
   requireAdmin,
   asyncHandler(async (req, res) => {
-    const { title, artist, notes } = req.body || {};
+    const { title, artist, notes, youtubeUrl, spotifyUrl } = req.body || {};
     if (!title || !title.trim() || !artist || !artist.trim()) {
       return res.status(400).json({ error: 'title_and_artist_required' });
     }
-    const song = await songsRepo.create({ title: title.trim(), artist: artist.trim(), notes, addedBy: req.user.id });
+    const linkError = validateLinks(youtubeUrl, spotifyUrl);
+    if (linkError) return res.status(400).json({ error: linkError });
+    const song = await songsRepo.create({
+      title: title.trim(),
+      artist: artist.trim(),
+      notes,
+      youtubeUrl: youtubeUrl ? youtubeUrl.trim() : null,
+      spotifyUrl: spotifyUrl ? spotifyUrl.trim() : null,
+      addedBy: req.user.id,
+    });
     res.status(201).json(song);
   })
 );
@@ -39,11 +56,19 @@ router.patch(
   '/:id',
   requireAdmin,
   asyncHandler(async (req, res) => {
-    const { title, artist, notes } = req.body || {};
+    const { title, artist, notes, youtubeUrl, spotifyUrl } = req.body || {};
     if (!title || !title.trim() || !artist || !artist.trim()) {
       return res.status(400).json({ error: 'title_and_artist_required' });
     }
-    const song = await songsRepo.update(req.params.id, { title: title.trim(), artist: artist.trim(), notes });
+    const linkError = validateLinks(youtubeUrl, spotifyUrl);
+    if (linkError) return res.status(400).json({ error: linkError });
+    const song = await songsRepo.update(req.params.id, {
+      title: title.trim(),
+      artist: artist.trim(),
+      notes,
+      youtubeUrl: youtubeUrl ? youtubeUrl.trim() : null,
+      spotifyUrl: spotifyUrl ? spotifyUrl.trim() : null,
+    });
     if (!song) return res.status(404).json({ error: 'not_found' });
     res.json(song);
   })

@@ -2,7 +2,7 @@ const pool = require('../db/pool');
 
 async function findAll() {
   const { rows } = await pool.query(`
-    SELECT s.id, s.title, s.artist, s.notes, s.created_at,
+    SELECT s.id, s.title, s.artist, s.notes, s.youtube_url, s.spotify_url, s.created_at,
            COUNT(st.id)::int AS tutorial_count
     FROM songs s
     LEFT JOIN song_tutorials st ON st.song_id = s.id
@@ -14,28 +14,29 @@ async function findAll() {
 
 async function findById(id) {
   const { rows } = await pool.query(
-    'SELECT id, title, artist, notes, added_by, created_at, updated_at FROM songs WHERE id = $1',
+    `SELECT id, title, artist, notes, youtube_url, spotify_url, added_by, created_at, updated_at
+     FROM songs WHERE id = $1`,
     [id]
   );
   return rows[0] || null;
 }
 
-async function create({ title, artist, notes, addedBy }) {
+async function create({ title, artist, notes, youtubeUrl, spotifyUrl, addedBy }) {
   const { rows } = await pool.query(
-    `INSERT INTO songs (title, artist, notes, added_by)
-     VALUES ($1, $2, $3, $4)
-     RETURNING id, title, artist, notes, added_by, created_at, updated_at`,
-    [title, artist, notes || null, addedBy]
+    `INSERT INTO songs (title, artist, notes, youtube_url, spotify_url, added_by)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id, title, artist, notes, youtube_url, spotify_url, added_by, created_at, updated_at`,
+    [title, artist, notes || null, youtubeUrl || null, spotifyUrl || null, addedBy]
   );
   return rows[0];
 }
 
-async function update(id, { title, artist, notes }) {
+async function update(id, { title, artist, notes, youtubeUrl, spotifyUrl }) {
   const { rows } = await pool.query(
-    `UPDATE songs SET title = $2, artist = $3, notes = $4, updated_at = now()
+    `UPDATE songs SET title = $2, artist = $3, notes = $4, youtube_url = $5, spotify_url = $6, updated_at = now()
      WHERE id = $1
-     RETURNING id, title, artist, notes, added_by, created_at, updated_at`,
-    [id, title, artist, notes || null]
+     RETURNING id, title, artist, notes, youtube_url, spotify_url, added_by, created_at, updated_at`,
+    [id, title, artist, notes || null, youtubeUrl || null, spotifyUrl || null]
   );
   return rows[0] || null;
 }

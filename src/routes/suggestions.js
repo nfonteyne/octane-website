@@ -26,7 +26,7 @@ router.get(
 router.post(
   '/',
   asyncHandler(async (req, res) => {
-    const { title, artist, youtubeUrl } = req.body || {};
+    const { title, artist, youtubeUrl, description } = req.body || {};
     if (!title || !title.trim() || !youtubeUrl || !youtubeUrl.trim()) {
       return res.status(400).json({ error: 'title_and_youtube_url_required' });
     }
@@ -37,6 +37,7 @@ router.post(
       title: title.trim(),
       artist: artist ? artist.trim() : null,
       youtubeUrl: youtubeUrl.trim(),
+      description: description ? description.trim() : null,
       suggestedBy: req.user.id,
     });
     res.status(201).json(suggestion);

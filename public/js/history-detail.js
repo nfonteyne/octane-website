@@ -20,19 +20,23 @@ function showError(message) {
     const setlist = await api.get(`/api/setlists/${id}`);
     const main = setlist.songs.filter((s) => !s.is_encore);
     const encore = setlist.songs.filter((s) => s.is_encore);
+    const rowHtml = (s) => `<li><span class="row-title">${escapeHtml(s.title)}</span> <span class="row-artist">— ${escapeHtml(s.artist)}</span>${s.note ? `<span class="note">${escapeHtml(s.note)}</span>` : ''}</li>`;
+
     container.innerHTML = `
-      <h1>${escapeHtml(setlist.name || 'Concert')}</h1>
-      <p class="card-subtitle">${escapeHtml(setlist.venue || '')} · ${formatDate(setlist.concert_date)}</p>
+      <div class="card">
+        <div class="card-title">${escapeHtml(setlist.name || 'Concert')}</div>
+        <div class="card-subtitle">${escapeHtml(setlist.venue || '')} · ${formatDate(setlist.concert_date)}</div>
+      </div>
       <div class="setlist-section">
         <h3>Setlist</h3>
         ${main.length
-          ? `<ol class="setlist">${main.map((s) => `<li>${escapeHtml(s.title)} — ${escapeHtml(s.artist)}${s.note ? `<span class="note">${escapeHtml(s.note)}</span>` : ''}</li>`).join('')}</ol>`
+          ? `<ol class="setlist">${main.map(rowHtml).join('')}</ol>`
           : '<p class="empty">Aucun morceau enregistré.</p>'}
       </div>
       <div class="setlist-section">
         <h3>Rappel</h3>
         ${encore.length
-          ? `<ol class="setlist">${encore.map((s) => `<li>${escapeHtml(s.title)} — ${escapeHtml(s.artist)}${s.note ? `<span class="note">${escapeHtml(s.note)}</span>` : ''}</li>`).join('')}</ol>`
+          ? `<ol class="setlist">${encore.map(rowHtml).join('')}</ol>`
           : '<p class="empty">Aucun rappel enregistré.</p>'}
       </div>
     `;
