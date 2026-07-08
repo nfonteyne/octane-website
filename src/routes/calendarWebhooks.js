@@ -23,7 +23,9 @@ router.post(
     try {
       const summary = await calendarRepo.ingestSlots(slots);
       workflowState.setSuccess(
-        `${summary.slotsProcessed} créneaux reçus, ${summary.availabilityRows} disponibilités enregistrées`
+        `${summary.slotsProcessed} créneaux reçus, ${summary.availabilityRows} disponibilités enregistrées ` +
+          `(${summary.availableTrueCount} dispo / ${summary.availableFalseCount} indispo)` +
+          (summary.slotsWithNoPeople > 0 ? ` — ${summary.slotsWithNoPeople} créneaux sans aucune personne, voir les logs serveur` : '')
       );
       res.json({ ok: true, ...summary });
     } catch (err) {

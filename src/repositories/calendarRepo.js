@@ -37,6 +37,8 @@ async function upsertPerson(client, name) {
 async function ingestSlots(slots) {
   const client = await pool.connect();
   let availabilityRows = 0;
+  let availableTrueCount = 0;
+  let availableFalseCount = 0;
   let slotsWithNoPeople = 0;
   try {
     await client.query('BEGIN');
@@ -76,13 +78,16 @@ async function ingestSlots(slots) {
           continue;
         }
         const personId = await upsertPerson(client, person.name);
+        const isAvailable = !!person.available;
+        if (isAvailable) availableTrueCount += 1;
+        else availableFalseCount += 1;
         await client.query(
           `INSERT INTO calendar_availability (slot_id, person_id, is_available, checked_at)
            VALUES ($1, $2, $3, now())
            ON CONFLICT (slot_id, person_id) DO UPDATE SET
              is_available = excluded.is_available,
              checked_at = excluded.checked_at`,
-          [slotId, personId, !!person.available]
+          [slotId, personId, isAvailable]
         );
         availabilityRows += 1;
       }
@@ -95,12 +100,18 @@ async function ingestSlots(slots) {
     client.release();
   }
 
-  const summary = { slotsProcessed: slots.length, availabilityRows, slotsWithNoPeople };
+  const summary = {
+    slotsProcessed: slots.length,
+    availabilityRows,
+    slotsWithNoPeople,
+    availableTrueCount,
+    availableFalseCount,
+  };
   console.log('[calendar] ingest summary:', summary);
   return summary;
 }
 
-async function getSlots({ minPeople = 1, personIds = null, weeks = 3 } = {}) {
+async function getSlots({ minPeople = 0, personIds = null, weeks = 3 } = {}) {
   const cappedWeeks = Math.min(weeks || 3, 3);
   const now = new Date();
   const end = new Date(now);

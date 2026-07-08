@@ -16,7 +16,10 @@ router.get(
 router.get(
   '/slots',
   asyncHandler(async (req, res) => {
-    const minPeople = req.query.min_people !== undefined ? parseInt(req.query.min_people, 10) : 1;
+    // Default 0, not 1: with no filter the calendar should show every
+    // ingested slot (heat-colored by availability ratio on the frontend),
+    // not just slots where at least one person happens to be free.
+    const minPeople = req.query.min_people !== undefined ? parseInt(req.query.min_people, 10) : 0;
     const weeks = req.query.weeks !== undefined ? parseInt(req.query.weeks, 10) : 3;
     const personIds = req.query.person_ids
       ? req.query.person_ids.split(',').map(Number).filter((n) => !Number.isNaN(n))
@@ -85,8 +88,9 @@ router.post('/refresh', (req, res) => {
 
       const summary = await calendarRepo.ingestSlots(data.slots);
       workflowState.setSuccess(
-        `${summary.slotsProcessed} créneaux reçus, ${summary.availabilityRows} disponibilités enregistrées` +
-          (summary.slotsWithNoPeople > 0 ? ` (${summary.slotsWithNoPeople} créneaux sans aucune personne — voir les logs serveur)` : '')
+        `${summary.slotsProcessed} créneaux reçus, ${summary.availabilityRows} disponibilités enregistrées ` +
+          `(${summary.availableTrueCount} dispo / ${summary.availableFalseCount} indispo)` +
+          (summary.slotsWithNoPeople > 0 ? ` — ${summary.slotsWithNoPeople} créneaux sans aucune personne, voir les logs serveur` : '')
       );
     } catch (err) {
       clearTimeout(watchdog);
