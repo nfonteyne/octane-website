@@ -14,8 +14,8 @@ function setRunning() {
   state = { status: 'running', triggeredAt: new Date().toISOString(), message: null, node: null };
 }
 
-function setSuccess() {
-  state = { ...state, status: 'success', message: null, node: null };
+function setSuccess(message) {
+  state = { ...state, status: 'success', message: message || null, node: null };
 }
 
 function setError(message, node) {

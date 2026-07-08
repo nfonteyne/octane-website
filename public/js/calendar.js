@@ -210,7 +210,7 @@ function pollWorkflowStatus(btn, maxMs = 180000, intervalMs = 4000) {
       const data = await api.get('/api/calendar/workflow-status');
       if (data.status === 'success') {
         clearInterval(timer);
-        showToast('Calendrier mis à jour !');
+        showToast('Calendrier mis à jour !' + (data.message ? ' ' + data.message : ''), false, 10000);
         resetRefreshButton(btn);
         await loadSlots();
         await loadLastChecked();

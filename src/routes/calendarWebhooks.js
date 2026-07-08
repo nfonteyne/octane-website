@@ -21,9 +21,11 @@ router.post(
       return res.status(400).json({ error: 'expected_array_of_slots' });
     }
     try {
-      await calendarRepo.ingestSlots(slots);
-      workflowState.setSuccess();
-      res.json({ ok: true, count: slots.length });
+      const summary = await calendarRepo.ingestSlots(slots);
+      workflowState.setSuccess(
+        `${summary.slotsProcessed} créneaux reçus, ${summary.availabilityRows} disponibilités enregistrées`
+      );
+      res.json({ ok: true, ...summary });
     } catch (err) {
       workflowState.setError(err.message);
       res.status(500).json({ error: err.message });

@@ -11,17 +11,20 @@ function formatDateShort(dateStr) {
   return d.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
-function timelineSongCard(song) {
+function timelineSongRow(song) {
   const embed = youtubeEmbedUrl(song.youtube_url);
   return `
-    <div class="timeline-song-card">
-      <div class="timeline-song-title">${escapeHtml(song.title)}</div>
-      <div class="card-subtitle">${escapeHtml(song.artist)}</div>
+    <div class="timeline-song-row">
+      <div class="row-index">${song.position}</div>
+      <div class="timeline-song-main">
+        <div class="timeline-song-title">${escapeHtml(song.title)}</div>
+        <div class="card-subtitle">${escapeHtml(song.artist)}</div>
+        ${song.note ? `<p class="note">${escapeHtml(song.note)}</p>` : ''}
+        ${song.spotify_url ? `<div class="song-links"><a class="pill-link spotify" href="${escapeHtml(song.spotify_url)}" target="_blank" rel="noopener">&#9835; Spotify</a></div>` : ''}
+      </div>
       ${embed
         ? `<div class="youtube-embed timeline-embed"><iframe src="${embed}" loading="lazy" allowfullscreen></iframe></div>`
-        : `<p class="empty">Pas de lien YouTube</p>`}
-      ${song.spotify_url ? `<div class="song-links"><a class="pill-link spotify" href="${escapeHtml(song.spotify_url)}" target="_blank" rel="noopener">&#9835; Spotify</a></div>` : ''}
-      ${song.note ? `<p class="note">${escapeHtml(song.note)}</p>` : ''}
+        : `<p class="empty timeline-no-embed">Pas de lien YouTube</p>`}
     </div>
   `;
 }
@@ -37,14 +40,14 @@ function timelineConcertBlock(concert) {
       <div class="setlist-section">
         <h3>Setlist</h3>
         ${main.length
-          ? `<div class="timeline-songs">${main.map(timelineSongCard).join('')}</div>`
+          ? `<div class="timeline-songs">${main.map(timelineSongRow).join('')}</div>`
           : '<p class="empty">Aucun morceau enregistré.</p>'}
       </div>
 
       ${encore.length ? `
       <div class="setlist-section">
         <h3>Rappel</h3>
-        <div class="timeline-songs">${encore.map(timelineSongCard).join('')}</div>
+        <div class="timeline-songs">${encore.map(timelineSongRow).join('')}</div>
       </div>` : ''}
 
       <a class="back-link" href="/history-detail.html?id=${concert.id}">Voir / modifier ce concert &rarr;</a>

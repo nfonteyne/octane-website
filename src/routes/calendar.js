@@ -78,12 +78,16 @@ router.post('/refresh', (req, res) => {
 
       const data = await response.json();
       if (!Array.isArray(data.slots)) {
+        console.error('[calendar] n8n response had no "slots" array. Raw body:', JSON.stringify(data).slice(0, 500));
         workflowState.setError('Unexpected response format from n8n');
         return;
       }
 
-      await calendarRepo.ingestSlots(data.slots);
-      workflowState.setSuccess();
+      const summary = await calendarRepo.ingestSlots(data.slots);
+      workflowState.setSuccess(
+        `${summary.slotsProcessed} créneaux reçus, ${summary.availabilityRows} disponibilités enregistrées` +
+          (summary.slotsWithNoPeople > 0 ? ` (${summary.slotsWithNoPeople} créneaux sans aucune personne — voir les logs serveur)` : '')
+      );
     } catch (err) {
       clearTimeout(watchdog);
       const message = err.name === 'AbortError' ? 'n8n did not respond within 5 minutes' : err.message;

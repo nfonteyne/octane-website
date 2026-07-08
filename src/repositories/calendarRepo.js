@@ -29,8 +29,15 @@ async function upsertPerson(client, name) {
   return rows[0].id;
 }
 
+// Returns ingestion counts so callers can surface a diagnostic (e.g. "12
+// slots but 0 availability rows" points at a payload-shape mismatch from
+// n8n, since a slot with no matching calendar_availability rows is silently
+// excluded from getSlots() below — it would otherwise look like "nothing
+// happened" with no error anywhere.
 async function ingestSlots(slots) {
   const client = await pool.connect();
+  let availabilityRows = 0;
+  let slotsWithNoPeople = 0;
   try {
     await client.query('BEGIN');
     for (const slot of slots) {
@@ -51,10 +58,23 @@ async function ingestSlots(slots) {
       const slotId = slotRows[0].id;
 
       // people may arrive as a JSON string from n8n's Set-node serialization.
-      const people = typeof slot.people === 'string' ? JSON.parse(slot.people) : slot.people || [];
+      let people = typeof slot.people === 'string' ? JSON.parse(slot.people) : slot.people || [];
+      if (!Array.isArray(people)) people = [];
+
+      if (people.length === 0) {
+        slotsWithNoPeople += 1;
+        console.warn('[calendar] ingest: slot has no people entries', {
+          lower: slot.lower,
+          upper: slot.upper,
+          rawPeopleType: typeof slot.people,
+        });
+      }
 
       for (const person of people) {
-        if (!person || !person.name) continue;
+        if (!person || !person.name) {
+          console.warn('[calendar] ingest: skipped a person entry with no "name" field', person);
+          continue;
+        }
         const personId = await upsertPerson(client, person.name);
         await client.query(
           `INSERT INTO calendar_availability (slot_id, person_id, is_available, checked_at)
@@ -64,6 +84,7 @@ async function ingestSlots(slots) {
              checked_at = excluded.checked_at`,
           [slotId, personId, !!person.available]
         );
+        availabilityRows += 1;
       }
     }
     await client.query('COMMIT');
@@ -73,6 +94,10 @@ async function ingestSlots(slots) {
   } finally {
     client.release();
   }
+
+  const summary = { slotsProcessed: slots.length, availabilityRows, slotsWithNoPeople };
+  console.log('[calendar] ingest summary:', summary);
+  return summary;
 }
 
 async function getSlots({ minPeople = 1, personIds = null, weeks = 3 } = {}) {

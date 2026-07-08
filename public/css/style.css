@@ -675,24 +675,40 @@ button:disabled {
 .timeline-concert { margin-bottom: 1.5rem; }
 
 .timeline-songs {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
   margin-top: 0.5rem;
 }
 
-.timeline-song-card {
+.timeline-song-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
   background: var(--surface-alt);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 0.7rem;
+  padding: 0.7rem 0.9rem;
 }
+
+.timeline-song-row .row-index { margin-top: 0.15rem; }
+
+.timeline-song-main { flex: 1 1 auto; min-width: 0; }
 
 .timeline-song-title { font-weight: 600; }
 
 .timeline-embed {
-  max-width: none;
-  margin-top: 0.5rem;
+  width: 200px;
+  max-width: 200px;
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
+.timeline-no-embed {
+  flex: 0 0 auto;
+  width: 200px;
+  text-align: center;
+  margin: 0;
 }
 
 /* ---------- Setlist ---------- */
@@ -1060,4 +1076,8 @@ a.back-link:hover { color: var(--accent); }
   .calendar-header-row span:nth-child(n) { font-size: 0.7rem; }
 
   .cal-cell { min-height: 64px; font-size: 0.7rem; }
+
+  .timeline-song-row { flex-wrap: wrap; }
+  .timeline-embed,
+  .timeline-no-embed { width: 100%; max-width: none; }
 }
