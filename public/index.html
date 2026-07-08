@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Répertoire — Octane</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <nav id="main-nav"></nav>
+</header>
+<main>
+  <h1>Répertoire</h1>
+  <div id="error"></div>
+
+  <div id="admin-add-song" style="display:none">
+    <h2>Ajouter un morceau</h2>
+    <form id="add-song-form" class="inline-form">
+      <label>Titre <input name="title" required></label>
+      <label>Artiste <input name="artist" required></label>
+      <label>Notes <input name="notes"></label>
+      <button type="submit">Ajouter</button>
+    </form>
+  </div>
+
+  <h2>Morceaux travaillés</h2>
+  <div id="songs-list"></div>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/render.js"></script>
+<script src="/js/nav.js"></script>
+<script src="/js/repertoire.js"></script>
+</body>
+</html>

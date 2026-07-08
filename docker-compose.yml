@@ -1,0 +1,33 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      - postgres
+    networks:
+      - default
+      - authentik
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: octane
+      POSTGRES_USER: octane
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - default
+
+networks:
+  default:
+  authentik:
+    external: true
+    name: ${AUTHENTIK_NETWORK_NAME:-authentik_default}
+
+volumes:
+  pgdata:

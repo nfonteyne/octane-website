@@ -1,0 +1,19 @@
+{
+  "name": "octane-website",
+  "version": "1.0.0",
+  "description": "Outil interne de gestion du repertoire, suggestions et setlists du groupe",
+  "private": true,
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "migrate": "node src/db/migrate.js"
+  },
+  "dependencies": {
+    "connect-pg-simple": "^10.0.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "express-session": "^1.18.1",
+    "openid-client": "^6.1.7",
+    "pg": "^8.13.1"
+  }
+}

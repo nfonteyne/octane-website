@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suggestions — Octane</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <nav id="main-nav"></nav>
+</header>
+<main>
+  <h1>Suggestions de morceaux</h1>
+  <div id="error"></div>
+
+  <h2>Proposer un morceau</h2>
+  <form id="add-suggestion-form" class="inline-form">
+    <label>Titre <input name="title" required></label>
+    <label>Artiste <input name="artist"></label>
+    <label>Lien YouTube <input name="youtubeUrl" type="url" required placeholder="https://youtube.com/watch?v=..."></label>
+    <button type="submit">Proposer</button>
+  </form>
+
+  <h2>Toutes les suggestions</h2>
+  <div id="suggestions-list"></div>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/render.js"></script>
+<script src="/js/nav.js"></script>
+<script src="/js/suggestions.js"></script>
+</body>
+</html>
