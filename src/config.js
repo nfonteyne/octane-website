@@ -13,7 +13,17 @@ function required(name) {
 module.exports = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT, 10) || 3000,
-  databaseUrl: required('DATABASE_URL'),
+  // Discrete connection fields rather than a single DATABASE_URL: a
+  // password containing "/", "+", "=", "@" etc. (as produced by e.g.
+  // `openssl rand -base64`) would otherwise need manual URL-encoding
+  // to avoid breaking the connection string parser.
+  pg: {
+    host: process.env.PGHOST || 'postgres',
+    port: parseInt(process.env.PGPORT, 10) || 5432,
+    database: process.env.PGDATABASE || 'octane',
+    user: process.env.PGUSER || 'octane',
+    password: required('POSTGRES_PASSWORD'),
+  },
   sessionSecret: required('SESSION_SECRET'),
   // DEV_BYPASS_AUTH lets you run the app locally without a real Authentik
   // instance: /auth/login prompts for a name instead of redirecting to OIDC.

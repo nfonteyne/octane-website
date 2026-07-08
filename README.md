@@ -17,7 +17,6 @@ cp .env.example .env
 Éditer `.env` (au minimum) :
 
 ```
-DATABASE_URL=postgres://octane:changeme@postgres:5432/octane
 POSTGRES_PASSWORD=changeme
 SESSION_SECRET=une-longue-chaine-aleatoire
 
@@ -30,6 +29,8 @@ ADMIN_GROUP_NAME=octane-admins
 TRAEFIK_NETWORK_NAME=traefik-proxy
 APP_DOMAIN=octane.dandrove.com
 ```
+
+`POSTGRES_PASSWORD` est la seule variable Postgres à renseigner : l'app se connecte avec des champs séparés (host/port/base/utilisateur déjà pré-remplis avec les valeurs par défaut du service `postgres`), pas une URL unique — donc n'importe quel caractère spécial dans le mot de passe (généré par `openssl rand -base64` par exemple) fonctionne sans encodage particulier.
 
 `AUTHENTIK_ISSUER_URL` utilise ici le nom du conteneur Authentik sur le réseau `traefik-proxy` (remplacez `authentik-server` par le vrai nom de service de votre stack Authentik — `docker ps` sur cette stack vous le donnera) plutôt que l'URL publique, pour éviter un aller-retour inutile par Traefik. L'URL publique fonctionne aussi si vous préférez.
 
@@ -270,8 +271,8 @@ Le [Démarrage rapide](#démarrage-rapide-serveur-avec-traefik) ci-dessus couvre
 
 | Variable | Description |
 |---|---|
-| `DATABASE_URL` | Chaîne de connexion Postgres (déjà cohérente avec le service `postgres` du compose) |
-| `POSTGRES_PASSWORD` | Mot de passe du service Postgres |
+| `POSTGRES_PASSWORD` | Mot de passe Postgres, utilisé à la fois par le service `postgres` et par l'app (connexion par champs séparés, pas d'URL — aucun caractère à encoder) |
+| `PGHOST` / `PGPORT` / `PGDATABASE` / `PGUSER` | Optionnels, déjà cohérents par défaut avec le service `postgres` du compose (`postgres`/`5432`/`octane`/`octane`) |
 | `SESSION_SECRET` | Chaîne aléatoire longue pour signer les cookies de session |
 | `AUTHENTIK_ISSUER_URL` | URL d'issuer OIDC de l'application Authentik (interne, ex: `http://authentik-server:9000/application/o/octane-website/`, ou publique) |
 | `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | Identifiants du provider Authentik |
@@ -295,7 +296,6 @@ Dans `.env`, mettre :
 
 ```
 DEV_BYPASS_AUTH=true
-DATABASE_URL=postgres://octane:changeme@postgres:5432/octane
 POSTGRES_PASSWORD=changeme
 SESSION_SECRET=une-longue-chaine-aleatoire
 ```
@@ -312,7 +312,8 @@ Ou sans Docker du tout, avec un Postgres local :
 
 ```bash
 npm install
-# démarrer un Postgres local, renseigner DATABASE_URL dans .env
+# démarrer un Postgres local, puis dans .env : PGHOST=localhost (au lieu du
+# nom de service Docker "postgres" par défaut) + POSTGRES_PASSWORD assorti
 npm run migrate
 npm start
 ```
