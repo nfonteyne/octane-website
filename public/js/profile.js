@@ -46,7 +46,12 @@ function statTile(value, label) {
       </div>
 
       <div class="panel">
-        <p class="empty">Identité gérée par Authentik — pour changer votre nom, email ou mot de passe, rendez-vous sur votre compte Authentik.</p>
+        <p class="empty">
+          Identité gérée par Authentik — pour changer votre nom, email ou mot de passe,
+          ${profile.authentikAccountUrl
+            ? `rendez-vous sur <a href="${escapeHtml(profile.authentikAccountUrl)}" target="_blank" rel="noopener">votre compte Authentik</a>.`
+            : 'rendez-vous sur votre compte Authentik.'}
+        </p>
         <a href="/auth/logout"><button type="button" class="danger">Se déconnecter</button></a>
       </div>
     `;

@@ -1,14 +1,28 @@
 const express = require('express');
 const usersRepo = require('../repositories/usersRepo');
+const config = require('../config');
 const asyncHandler = require('../lib/asyncHandler');
 
 const router = express.Router();
+
+function authentikAccountUrl() {
+  if (!config.authentikPublicUrl) return null;
+  return new URL('/if/user/', config.authentikPublicUrl).href;
+}
 
 router.get(
   '/me',
   asyncHandler(async (req, res) => {
     const { id, name, username, email, avatar_url, is_admin } = req.user;
-    res.json({ id, name, username, email, avatarUrl: avatar_url, isAdmin: is_admin });
+    res.json({
+      id,
+      name,
+      username,
+      email,
+      avatarUrl: avatar_url,
+      isAdmin: is_admin,
+      authentikAccountUrl: authentikAccountUrl(),
+    });
   })
 );
 
@@ -27,6 +41,7 @@ router.get(
       isAdmin: is_admin,
       createdAt: created_at,
       stats,
+      authentikAccountUrl: authentikAccountUrl(),
     });
   })
 );

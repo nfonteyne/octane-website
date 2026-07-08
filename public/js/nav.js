@@ -34,6 +34,7 @@ async function initNav(activePage) {
     </div>
     <div class="nav-user">
       <button type="button" class="icon-btn secondary" id="theme-toggle" title="Changer de thème" aria-label="Changer de thème"></button>
+      ${me.authentikAccountUrl ? `<a href="${escapeHtml(me.authentikAccountUrl)}" target="_blank" rel="noopener" title="Gérer mon compte Authentik (mot de passe, etc.)">Mon compte</a>` : ''}
       <a class="nav-profile-link" href="/profile.html">
         ${avatarHtml(me, 'avatar-sm')}
         <span>${escapeHtml(me.name)}${me.isAdmin ? ' <span class="badge">admin</span>' : ''}</span>

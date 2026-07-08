@@ -42,6 +42,11 @@ module.exports = {
     process.env.POST_LOGOUT_REDIRECT_URI ||
     (process.env.OIDC_REDIRECT_URI ? new URL('/', process.env.OIDC_REDIRECT_URI).href : undefined),
   adminGroupName: process.env.ADMIN_GROUP_NAME || 'octane-admins',
+  // Optional: public URL of the Authentik instance (e.g. https://auth.dandrove.com),
+  // used only to show users a link to manage their own account/password.
+  // Distinct from AUTHENTIK_ISSUER_URL, which is often an internal/Docker
+  // address not reachable from a user's browser. Hidden from the UI if unset.
+  authentikPublicUrl: process.env.AUTHENTIK_PUBLIC_URL || null,
   // All optional: the "add a song" autocomplete works with none of these set
   // (title/artist suggestions come from Apple's free, key-less iTunes Search
   // API). Without Spotify/YouTube credentials, the matching links are just

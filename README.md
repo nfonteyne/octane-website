@@ -340,6 +340,7 @@ Le [Démarrage rapide](#démarrage-rapide-serveur-avec-traefik) ci-dessus couvre
 | `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | Identifiants du provider Authentik |
 | `OIDC_REDIRECT_URI` | URL publique de callback, doit correspondre à celle configurée dans Authentik (ex: `https://octane.dandrove.com/auth/callback`) |
 | `ADMIN_GROUP_NAME` | Nom du groupe Authentik dont les membres deviennent admins |
+| `AUTHENTIK_PUBLIC_URL` | Optionnel — URL publique d'Authentik, pour afficher un lien "Mon compte" (nav + page profil) permettant à chacun de changer son mot de passe. Masqué si absent |
 | `TRAEFIK_NETWORK_NAME` | Nom du réseau Docker externe partagé avec Traefik et Authentik (défaut `traefik-proxy`) |
 | `APP_DOMAIN` | Nom de domaine public utilisé par Traefik pour router vers l'app (ex: `octane.dandrove.com`) |
 | `APP_PORT` | Port hôte utilisé uniquement par `docker-compose.dev.yml` (test local sans Traefik) |
