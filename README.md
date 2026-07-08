@@ -33,6 +33,22 @@ APP_DOMAIN=octane.dandrove.com
 
 `AUTHENTIK_ISSUER_URL` utilise ici le nom du conteneur Authentik sur le réseau `traefik-proxy` (remplacez `authentik-server` par le vrai nom de service de votre stack Authentik — `docker ps` sur cette stack vous le donnera) plutôt que l'URL publique, pour éviter un aller-retour inutile par Traefik. L'URL publique fonctionne aussi si vous préférez.
 
+Pour générer `POSTGRES_PASSWORD` et `SESSION_SECRET` (valeurs aléatoires, à ne jamais commiter) :
+
+```bash
+openssl rand -base64 24   # POSTGRES_PASSWORD
+openssl rand -hex 32      # SESSION_SECRET
+```
+
+Si `openssl` n'est pas disponible, une alternative sans dépendance :
+
+```bash
+node -e "console.log(require('crypto').randomBytes(24).toString('base64'))"   # POSTGRES_PASSWORD
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"      # SESSION_SECRET
+```
+
+Collez chaque valeur générée dans `.env` à la place de `changeme` / `une-longue-chaine-aleatoire`.
+
 Si le réseau `traefik-proxy` n'existe pas encore (il devrait déjà exister si Authentik tourne dessus) :
 
 ```bash
