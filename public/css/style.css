@@ -120,6 +120,12 @@ nav#main-nav {
   color: var(--accent);
 }
 
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .nav-toggle {
   display: none;
   background: transparent;
@@ -129,6 +135,15 @@ nav#main-nav {
   padding: 0.4rem 0.6rem;
   font-size: 1.1rem;
   line-height: 1;
+}
+
+.nav-menu {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1 1 auto;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .nav-links {
@@ -1019,20 +1034,30 @@ a.back-link:hover { color: var(--accent); }
 
   .nav-toggle { display: inline-flex; }
 
-  .nav-links {
+  /* Only the brand + theme toggle + hamburger stay in the top row; the
+     rest (page links, account/profile/logout) collapses into one dropdown
+     so the bar doesn't get crowded on a phone-width screen. */
+  .nav-menu {
     order: 3;
     flex-basis: 100%;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.1rem;
+    align-items: stretch;
+    gap: 0;
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.2s ease;
+    transition: max-height 0.25s ease;
   }
 
-  .nav-links.open {
-    max-height: 260px;
-    padding: 0.4rem 0 0.8rem;
+  .nav-menu.open {
+    max-height: 420px;
+    padding-bottom: 0.6rem;
+  }
+
+  .nav-links {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+    padding-top: 0.4rem;
   }
 
   .nav-links a {
@@ -1042,7 +1067,17 @@ a.back-link:hover { color: var(--accent); }
   }
 
   .nav-user {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
     margin-left: 0;
+  }
+
+  .nav-user > a,
+  .nav-user > .nav-profile-link {
+    width: 100%;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
   }
 
   main { padding: 1.25rem 0.9rem 3rem; }

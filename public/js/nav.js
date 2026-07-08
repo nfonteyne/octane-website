@@ -24,29 +24,33 @@ async function initNav(activePage) {
   const nav = document.getElementById('main-nav');
   nav.innerHTML = `
     <a class="brand" href="/index.html"><span class="brand-dot">&#9835;</span> Octane</a>
-    <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Menu">&#9776;</button>
-    <div class="nav-links" id="nav-links">
-      <a href="/index.html" class="${activePage === 'repertoire' ? 'active' : ''}">Répertoire</a>
-      <a href="/suggestions.html" class="${activePage === 'suggestions' ? 'active' : ''}">Suggestions</a>
-      <a href="/setlist.html" class="${activePage === 'setlist' ? 'active' : ''}">Prochain concert</a>
-      <a href="/calendar.html" class="${activePage === 'calendar' ? 'active' : ''}">Disponibilités</a>
-      <a href="/history.html" class="${activePage === 'history' ? 'active' : ''}">Historique</a>
+    <div class="nav-menu" id="nav-menu">
+      <div class="nav-links" id="nav-links">
+        <a href="/index.html" class="${activePage === 'repertoire' ? 'active' : ''}">Répertoire</a>
+        <a href="/suggestions.html" class="${activePage === 'suggestions' ? 'active' : ''}">Suggestions</a>
+        <a href="/setlist.html" class="${activePage === 'setlist' ? 'active' : ''}">Prochain concert</a>
+        <a href="/calendar.html" class="${activePage === 'calendar' ? 'active' : ''}">Disponibilités</a>
+        <a href="/history.html" class="${activePage === 'history' ? 'active' : ''}">Historique</a>
+      </div>
+      <div class="nav-user">
+        ${me.authentikAccountUrl ? `<a href="${escapeHtml(me.authentikAccountUrl)}" target="_blank" rel="noopener" title="Gérer mon compte Authentik (mot de passe, etc.)">Mon compte</a>` : ''}
+        <a class="nav-profile-link" href="/profile.html">
+          ${avatarHtml(me, 'avatar-sm')}
+          <span>${escapeHtml(me.name)}${me.isAdmin ? ' <span class="badge">admin</span>' : ''}</span>
+        </a>
+        <a href="/auth/logout">Se déconnecter</a>
+      </div>
     </div>
-    <div class="nav-user">
+    <div class="nav-controls">
       <button type="button" class="icon-btn secondary" id="theme-toggle" title="Changer de thème" aria-label="Changer de thème"></button>
-      ${me.authentikAccountUrl ? `<a href="${escapeHtml(me.authentikAccountUrl)}" target="_blank" rel="noopener" title="Gérer mon compte Authentik (mot de passe, etc.)">Mon compte</a>` : ''}
-      <a class="nav-profile-link" href="/profile.html">
-        ${avatarHtml(me, 'avatar-sm')}
-        <span>${escapeHtml(me.name)}${me.isAdmin ? ' <span class="badge">admin</span>' : ''}</span>
-      </a>
-      <a href="/auth/logout">Se déconnecter</a>
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Menu">&#9776;</button>
     </div>
   `;
 
   const toggle = document.getElementById('nav-toggle');
-  const links = document.getElementById('nav-links');
-  toggle.addEventListener('click', () => links.classList.toggle('open'));
-  links.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => links.classList.remove('open')));
+  const menu = document.getElementById('nav-menu');
+  toggle.addEventListener('click', () => menu.classList.toggle('open'));
+  menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => menu.classList.remove('open')));
 
   updateThemeToggleIcon();
   document.getElementById('theme-toggle').addEventListener('click', () => {
