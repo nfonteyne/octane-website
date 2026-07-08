@@ -39,3 +39,21 @@ function youtubeThumbnailUrl(url) {
   const videoId = youtubeVideoId(url);
   return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null;
 }
+
+function initials(name) {
+  return String(name || '?')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('') || '?';
+}
+
+function avatarHtml(user, extraClass) {
+  const cls = `avatar${extraClass ? ` ${extraClass}` : ''}`;
+  if (user.avatarUrl) {
+    return `<img class="${cls}" src="${escapeHtml(user.avatarUrl)}" alt="${escapeHtml(user.name)}" loading="lazy">`;
+  }
+  return `<span class="${cls} avatar-initials">${escapeHtml(initials(user.name))}</span>`;
+}

@@ -1,4 +1,5 @@
 const express = require('express');
+const usersRepo = require('../repositories/usersRepo');
 const asyncHandler = require('../lib/asyncHandler');
 
 const router = express.Router();
@@ -6,8 +7,27 @@ const router = express.Router();
 router.get(
   '/me',
   asyncHandler(async (req, res) => {
-    const { id, name, email, is_admin } = req.user;
-    res.json({ id, name, email, isAdmin: is_admin });
+    const { id, name, username, email, avatar_url, is_admin } = req.user;
+    res.json({ id, name, username, email, avatarUrl: avatar_url, isAdmin: is_admin });
+  })
+);
+
+router.get(
+  '/me/profile',
+  asyncHandler(async (req, res) => {
+    const { id, name, username, email, avatar_url, groups, is_admin, created_at } = req.user;
+    const stats = await usersRepo.getActivityStats(id);
+    res.json({
+      id,
+      name,
+      username,
+      email,
+      avatarUrl: avatar_url,
+      groups,
+      isAdmin: is_admin,
+      createdAt: created_at,
+      stats,
+    });
   })
 );
 

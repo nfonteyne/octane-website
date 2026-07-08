@@ -241,8 +241,11 @@ erDiagram
 | `/suggestions.html` | Tous | Proposer un morceau (avec lien YouTube embarqué + note libre), voter approuver/rejeter avec commentaire, attribué nominativement |
 | `/setlist.html` | Tous (lecture et écriture) | Setlist du prochain concert : choix des morceaux du répertoire, ordre, notes, section rappel |
 | `/history.html`, `/history-detail.html` | Tous (lecture seule) | Historique des setlists des concerts passés |
+| `/profile.html` | Chacun voit le sien | Profil issu d'Authentik (nom, avatar, groupes) + votre activité (morceaux ajoutés, suggestions, votes) |
 
 Le mode par défaut est la consultation ; les pages Répertoire, Setlist et Suggestions sont interactives pour toute personne connectée (chaque action reste attribuée nominativement via Authentik).
+
+Un bouton clair/sombre dans la barre de navigation permet de forcer un thème (mémorisé par navigateur) ; sans préférence explicite, l'app suit le thème du système.
 
 ## Rôles
 
@@ -264,6 +267,7 @@ Le rôle admin n'est volontairement pas plus étendu pour l'instant : son périm
 3. S'assurer qu'un **scope mapping** expose un claim `groups` dans l'ID token (Authentik a un mapping `groups` intégré dans les versions récentes, sinon créer un mapping personnalisé renvoyant `request.user.ak_groups.all()`).
 4. Créer un **groupe** Authentik (ex: `octane-admins`) et y ajouter les membres qui doivent être admins de l'application.
 5. Noter le Client ID / Client Secret du provider.
+6. Optionnel — pour afficher l'avatar sur la page profil (`/profile.html`) : le scope `profile` doit renvoyer un claim `picture`. Si votre version d'Authentik ne le fait pas nativement, ajoutez un scope mapping personnalisé renvoyant l'URL de l'avatar (ex: `request.user.avatar`). Sans ce claim, un avatar généré à partir des initiales est affiché à la place — aucune configuration n'est requise pour ce cas.
 
 ## Variables d'environnement (référence complète)
 

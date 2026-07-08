@@ -33,5 +33,13 @@ module.exports = {
   oidcClientId: devBypassAuth ? process.env.OIDC_CLIENT_ID : required('OIDC_CLIENT_ID'),
   oidcClientSecret: devBypassAuth ? process.env.OIDC_CLIENT_SECRET : required('OIDC_CLIENT_SECRET'),
   oidcRedirectUri: devBypassAuth ? process.env.OIDC_REDIRECT_URI : required('OIDC_REDIRECT_URI'),
+  // Where Authentik sends the browser back after RP-initiated logout (see
+  // /auth/logout). Defaults to the app's own origin derived from
+  // OIDC_REDIRECT_URI; override with POST_LOGOUT_REDIRECT_URI if needed.
+  // Must be registered as an allowed logout redirect URI on the Authentik
+  // provider, same as the regular redirect URI.
+  postLogoutRedirectUri:
+    process.env.POST_LOGOUT_REDIRECT_URI ||
+    (process.env.OIDC_REDIRECT_URI ? new URL('/', process.env.OIDC_REDIRECT_URI).href : undefined),
   adminGroupName: process.env.ADMIN_GROUP_NAME || 'octane-admins',
 };
