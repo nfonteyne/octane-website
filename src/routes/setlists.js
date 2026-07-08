@@ -1,6 +1,5 @@
 const express = require('express');
 const setlistsRepo = require('../repositories/setlistsRepo');
-const { requireAdmin } = require('../auth/middleware');
 const asyncHandler = require('../lib/asyncHandler');
 
 const router = express.Router();
@@ -37,7 +36,6 @@ router.get(
 
 router.post(
   '/',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     const { name, venue, concertDate } = req.body || {};
     if (!concertDate) return res.status(400).json({ error: 'concert_date_required' });
@@ -48,7 +46,6 @@ router.post(
 
 router.patch(
   '/:id',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     const { name, venue, concertDate } = req.body || {};
     if (!concertDate) return res.status(400).json({ error: 'concert_date_required' });
@@ -60,7 +57,6 @@ router.patch(
 
 router.delete(
   '/:id',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     await setlistsRepo.remove(req.params.id);
     res.status(204).end();
@@ -69,7 +65,6 @@ router.delete(
 
 router.put(
   '/:id/songs',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     const { songs } = req.body || {};
     if (!Array.isArray(songs)) return res.status(400).json({ error: 'songs_array_required' });
@@ -93,7 +88,6 @@ router.put(
 
 router.post(
   '/:id/songs',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     const { songId, position, note, isEncore } = req.body || {};
     if (!songId || typeof position !== 'number') {
@@ -113,7 +107,6 @@ router.post(
 
 router.delete(
   '/:id/songs/:setlistSongId',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     await setlistsRepo.removeSong(req.params.id, req.params.setlistSongId);
     res.status(204).end();

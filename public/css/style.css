@@ -281,6 +281,37 @@ h3 { font-size: 1rem; margin: 0 0 0.5rem; }
 
 .song-thumb:hover a.play-overlay { opacity: 1; }
 
+/* ---------- Tutorial cards (embedded links per instrument) ---------- */
+
+.tutorial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.7rem;
+  margin-top: 0.6rem;
+}
+
+.tutorial-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.tutorial-thumb {
+  width: 100%;
+  height: 84px;
+}
+
+.tutorial-meta { font-size: 0.8rem; }
+
+.tutorial-label {
+  margin-top: 0.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tutorial-label a { color: var(--accent); text-decoration: none; }
+
 .song-body {
   flex: 1 1 auto;
   min-width: 0;

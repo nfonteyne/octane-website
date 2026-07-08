@@ -30,17 +30,15 @@ function readOnlyView() {
         ? `<ol class="setlist">${encore.map((s) => `<li><span class="row-title">${escapeHtml(s.title)}</span> <span class="row-artist">— ${escapeHtml(s.artist)}</span>${s.note ? `<span class="note">${escapeHtml(s.note)}</span>` : ''}</li>`).join('')}</ol>`
         : '<p class="empty">Aucun morceau de rappel prévu.</p>'}
     </div>
-    ${me.isAdmin ? '<button id="edit-btn" class="secondary" style="margin-top:1rem">Modifier la setlist</button>' : ''}
+    <button id="edit-btn" class="secondary" style="margin-top:1rem">Modifier la setlist</button>
   `;
 }
 
 function renderReadOnly() {
   const container = document.getElementById('content');
   if (!setlist) {
-    container.innerHTML = me.isAdmin
-      ? `<p class="empty">Aucun concert à venir.</p>${metaFormTemplate()}`
-      : '<p class="empty">Aucun concert à venir pour le moment.</p>';
-    if (me.isAdmin) attachMetaFormHandler();
+    container.innerHTML = `<p class="empty">Aucun concert à venir.</p>${metaFormTemplate()}`;
+    attachMetaFormHandler();
     return;
   }
   container.innerHTML = readOnlyView();
@@ -249,9 +247,7 @@ function showError(message) {
 
 (async function init() {
   me = await initNav('setlist');
-  if (me.isAdmin) {
-    allSongs = await api.get('/api/songs');
-  }
+  allSongs = await api.get('/api/songs');
   setlist = await api.get('/api/setlists/next');
   renderReadOnly();
 })();

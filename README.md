@@ -220,19 +220,19 @@ erDiagram
 
 | Page | Accès | Description |
 |---|---|---|
-| `/index.html` | Tous (lecture), admin (écriture) | Répertoire des morceaux travaillés, liens de tutos par morceau et par instrument |
-| `/suggestions.html` | Tous | Proposer un morceau (avec lien YouTube embarqué), voter approuver/rejeter avec commentaire, attribué nominativement |
-| `/setlist.html` | Tous (lecture), admin (écriture) | Setlist du prochain concert : ordre des morceaux, notes, section rappel |
+| `/index.html` | Tous (lecture et écriture) | Répertoire des morceaux travaillés, liens/vignettes YouTube et Spotify, tutos embarqués par morceau et par instrument |
+| `/suggestions.html` | Tous | Proposer un morceau (avec lien YouTube embarqué + note libre), voter approuver/rejeter avec commentaire, attribué nominativement |
+| `/setlist.html` | Tous (lecture et écriture) | Setlist du prochain concert : choix des morceaux du répertoire, ordre, notes, section rappel |
 | `/history.html`, `/history-detail.html` | Tous (lecture seule) | Historique des setlists des concerts passés |
 
-Le mode par défaut est la consultation ; seule la page **Suggestions** est interactive (chaque vote est attribué à la personne connectée).
+Le mode par défaut est la consultation ; les pages Répertoire, Setlist et Suggestions sont interactives pour toute personne connectée (chaque action reste attribuée nominativement via Authentik).
 
 ## Rôles
 
-- **Membre** : consulte tout, propose des suggestions, vote/commente.
-- **Admin** : en plus, gère le répertoire, les tutos, promeut une suggestion approuvée en morceau du répertoire, crée/édite les setlists.
+- **Membre** : tout le monde — consulte, ajoute/modifie/supprime des morceaux du répertoire et leurs tutos, crée/modifie des concerts et leur setlist, propose des suggestions, vote/commente.
+- **Admin** : en plus, modère les suggestions (promouvoir une suggestion approuvée en morceau du répertoire, la rejeter, la supprimer).
 
-Le rôle admin est déterminé par un claim `groups` renvoyé par Authentik (voir configuration ci-dessous), recalculé à chaque connexion — Authentik reste la seule source de vérité des rôles.
+Le rôle admin n'est volontairement pas plus étendu pour l'instant : son périmètre exact (au-delà de la modération des suggestions) reste ouvert et pourra évoluer. Il n'y a pas de gestion des utilisateurs dans l'application elle-même — Authentik reste la seule source de vérité pour qui a accès et qui est admin (claim `groups`, recalculé à chaque connexion).
 
 ## Prérequis
 

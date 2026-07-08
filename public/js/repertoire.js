@@ -62,13 +62,12 @@ function songCardTemplate(song) {
             <button class="secondary icon-btn toggle-tutorials" data-id="${song.id}">
               ${isOpen ? 'Masquer les tutos' : `Tutos (${song.tutorial_count})`}
             </button>
-            ${me && me.isAdmin ? `<button class="secondary icon-btn edit-song" data-id="${song.id}">Modifier</button>` : ''}
+            <button class="secondary icon-btn edit-song" data-id="${song.id}">Modifier</button>
           </div>
         </div>
       </div>
       <div class="tutorials-panel panel" style="${isOpen ? '' : 'display:none'}">
-        <div class="tag-list" data-tutorials-for="${song.id}"><p class="empty">Chargement…</p></div>
-        ${me && me.isAdmin ? `
+        <div class="tutorial-grid" data-tutorials-for="${song.id}"><p class="empty">Chargement…</p></div>
         <form class="inline-form add-tutorial-form" data-song-id="${song.id}">
           <label>Instrument
             <select name="instrumentId" required>${instrumentOptions()}</select>
@@ -76,7 +75,7 @@ function songCardTemplate(song) {
           <label>Lien <input name="url" type="url" required placeholder="https://..."></label>
           <label>Libellé <input name="label" placeholder="ex: tuto solo"></label>
           <button type="submit">Ajouter le tuto</button>
-        </form>` : ''}
+        </form>
       </div>
     </div>
   `;
@@ -97,6 +96,35 @@ function editSongCardTemplate(song) {
           <button type="button" class="danger delete-song" data-id="${song.id}">Supprimer</button>
         </div>
       </form>
+    </div>
+  `;
+}
+
+function tutorialCardTemplate(t) {
+  const thumb = youtubeThumbnailUrl(t.url);
+  if (thumb) {
+    return `
+      <div class="tutorial-card" data-tutorial-id="${t.id}">
+        <div class="song-thumb tutorial-thumb">
+          <img src="${thumb}" alt="${escapeHtml(t.label || t.instrument_name)}" loading="lazy">
+          <a class="play-overlay" href="${escapeHtml(t.url)}" target="_blank" rel="noopener" title="Regarder sur YouTube">&#9658;</a>
+        </div>
+        <div class="tutorial-meta">
+          <span class="tag">${escapeHtml(t.instrument_name)}</span>
+          <div class="tutorial-label">${escapeHtml(t.label || 'Tuto')}</div>
+        </div>
+        <button class="secondary icon-btn remove-tutorial" data-song-id="${t.song_id}" data-id="${t.id}">Retirer</button>
+      </div>
+    `;
+  }
+  return `
+    <div class="tutorial-card" data-tutorial-id="${t.id}">
+      <div class="song-thumb tutorial-thumb placeholder">&#128279;</div>
+      <div class="tutorial-meta">
+        <span class="tag">${escapeHtml(t.instrument_name)}</span>
+        <div class="tutorial-label"><a href="${escapeHtml(t.url)}" target="_blank" rel="noopener">${escapeHtml(t.label || t.url)}</a></div>
+      </div>
+      <button class="secondary icon-btn remove-tutorial" data-song-id="${t.song_id}" data-id="${t.id}">Retirer</button>
     </div>
   `;
 }
@@ -152,11 +180,10 @@ async function loadTutorials(songId) {
       container.innerHTML = '<p class="empty">Aucun lien pour le moment.</p>';
       return;
     }
-    container.innerHTML = detail.tutorials
-      .map(
-        (t) => `<span class="tag">${escapeHtml(t.instrument_name)}: <a href="${escapeHtml(t.url)}" target="_blank" rel="noopener">${escapeHtml(t.label || t.url)}</a></span>`
-      )
-      .join('');
+    container.innerHTML = detail.tutorials.map(tutorialCardTemplate).join('');
+    container.querySelectorAll('.remove-tutorial').forEach((btn) => {
+      btn.addEventListener('click', () => onRemoveTutorial(parseInt(btn.dataset.songId, 10), parseInt(btn.dataset.id, 10)));
+    });
   } catch (err) {
     showError(err.message);
   }
@@ -174,6 +201,18 @@ async function onAddTutorial(e) {
     form.reset();
     const song = songs.find((s) => s.id === songId);
     if (song) song.tutorial_count += 1;
+    await loadTutorials(songId);
+    renderSongs();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+async function onRemoveTutorial(songId, tutorialId) {
+  try {
+    await api.del(`/api/songs/${songId}/tutorials/${tutorialId}`);
+    const song = songs.find((s) => s.id === songId);
+    if (song) song.tutorial_count -= 1;
     await loadTutorials(songId);
     renderSongs();
   } catch (err) {
@@ -233,9 +272,6 @@ function showError(message) {
 (async function init() {
   me = await initNav('repertoire');
   await loadInstruments();
-  if (me.isAdmin) {
-    document.getElementById('admin-add-song').style.display = 'block';
-    document.getElementById('add-song-form').addEventListener('submit', onAddSong);
-  }
+  document.getElementById('add-song-form').addEventListener('submit', onAddSong);
   await loadSongs();
 })();

@@ -1,6 +1,5 @@
 const express = require('express');
 const songsRepo = require('../repositories/songsRepo');
-const { requireAdmin } = require('../auth/middleware');
 const asyncHandler = require('../lib/asyncHandler');
 const { isValidYoutubeUrl } = require('../lib/youtube');
 const { isValidSpotifyUrl } = require('../lib/spotify');
@@ -32,7 +31,6 @@ router.get(
 
 router.post(
   '/',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     const { title, artist, notes, youtubeUrl, spotifyUrl } = req.body || {};
     if (!title || !title.trim() || !artist || !artist.trim()) {
@@ -54,7 +52,6 @@ router.post(
 
 router.patch(
   '/:id',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     const { title, artist, notes, youtubeUrl, spotifyUrl } = req.body || {};
     if (!title || !title.trim() || !artist || !artist.trim()) {
@@ -76,7 +73,6 @@ router.patch(
 
 router.delete(
   '/:id',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     try {
       await songsRepo.remove(req.params.id);
@@ -94,7 +90,6 @@ router.delete(
 
 router.post(
   '/:id/tutorials',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     const { instrumentId, url, label } = req.body || {};
     if (!instrumentId || !url || !url.trim()) {
@@ -114,7 +109,6 @@ router.post(
 
 router.delete(
   '/:songId/tutorials/:id',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     await songsRepo.removeTutorial(req.params.songId, req.params.id);
     res.status(204).end();
