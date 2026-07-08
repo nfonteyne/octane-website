@@ -123,7 +123,7 @@ async function getSlots({ minPeople = 0, personIds = null, weeks = 3 } = {}) {
 
   const { rows } = await pool.query(
     `SELECT
-       ts.id, ts.lower, ts.upper, ts.slot_date, ts.day_of_week,
+       ts.id, ts.lower, ts.upper, to_char(ts.slot_date, 'YYYY-MM-DD') AS slot_date, ts.day_of_week,
        filtered.available_count, filtered.total_in_filter,
        (
          SELECT json_agg(
