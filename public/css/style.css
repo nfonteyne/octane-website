@@ -112,6 +112,7 @@ nav#main-nav {
   align-items: center;
   gap: 0.4rem;
   margin-right: auto;
+  text-decoration: none;
 }
 
 .brand .brand-dot {

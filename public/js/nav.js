@@ -23,7 +23,7 @@ async function initNav(activePage) {
   const me = await api.get('/api/users/me');
   const nav = document.getElementById('main-nav');
   nav.innerHTML = `
-    <span class="brand"><span class="brand-dot">&#9835;</span> Octane</span>
+    <a class="brand" href="/index.html"><span class="brand-dot">&#9835;</span> Octane</a>
     <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Menu">&#9776;</button>
     <div class="nav-links" id="nav-links">
       <a href="/index.html" class="${activePage === 'repertoire' ? 'active' : ''}">Répertoire</a>

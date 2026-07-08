@@ -192,6 +192,8 @@ async function onAddSuggestion(e) {
   try {
     await api.post('/api/suggestions', { title, artist, youtubeUrl, description });
     form.reset();
+    document.getElementById('suggestion-link-status').textContent = '';
+    if (suggestionAutocomplete) suggestionAutocomplete.close();
     setAddSuggestionPanelOpen(false);
     await loadSuggestions();
   } catch (err) {
@@ -208,12 +210,39 @@ function showError(message) {
   document.getElementById('error').innerHTML = `<div class="error-banner">${escapeHtml(message)}</div>`;
 }
 
+let suggestionAutocomplete = null;
+
+async function onSuggestionCandidateSelected(candidate) {
+  document.getElementById('suggestion-title-input').value = candidate.title;
+  document.getElementById('suggestion-artist-input').value = candidate.artist;
+
+  const statusEl = document.getElementById('suggestion-link-status');
+  statusEl.textContent = 'Recherche du lien YouTube…';
+  try {
+    const links = await api.get(
+      `/api/music-search/links?title=${encodeURIComponent(candidate.title)}&artist=${encodeURIComponent(candidate.artist)}`
+    );
+    const youtubeInput = document.getElementById('suggestion-youtube-input');
+    if (links.youtubeUrl && !youtubeInput.value) youtubeInput.value = links.youtubeUrl;
+    statusEl.textContent = links.youtubeUrl
+      ? 'Lien YouTube trouvé automatiquement.'
+      : 'Aucun lien YouTube trouvé automatiquement — à saisir manuellement.';
+  } catch (err) {
+    statusEl.textContent = '';
+  }
+}
+
 (async function init() {
   me = await initNav('suggestions');
   document.getElementById('add-suggestion-form').addEventListener('submit', onAddSuggestion);
   document.getElementById('toggle-add-suggestion').addEventListener('click', () => {
     const isOpen = document.getElementById('add-suggestion-panel').style.display !== 'none';
     setAddSuggestionPanelOpen(!isOpen);
+  });
+  suggestionAutocomplete = createTitleAutocomplete({
+    inputId: 'suggestion-title-input',
+    dropdownId: 'suggestion-title-dropdown',
+    onSelect: onSuggestionCandidateSelected,
   });
   await loadSuggestions();
 })();

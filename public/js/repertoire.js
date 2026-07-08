@@ -232,7 +232,7 @@ async function onAddSong(e) {
     await api.post('/api/songs', { title, artist, notes, youtubeUrl, spotifyUrl });
     form.reset();
     document.getElementById('song-links-status').textContent = '';
-    closeAutocompleteDropdown();
+    songAutocomplete.close();
     setAddSongPanelOpen(false);
     await loadSongs();
   } catch (err) {
@@ -277,52 +277,11 @@ function showError(message) {
   document.getElementById('error').innerHTML = `<div class="error-banner">${escapeHtml(message)}</div>`;
 }
 
-let autocompleteTimer = null;
-let autocompleteCandidates = [];
-let autocompleteHighlight = -1;
+let songAutocomplete = null;
 
-function candidateItemTemplate(c, index) {
-  const img = c.artworkUrl
-    ? `<img src="${escapeHtml(c.artworkUrl)}" alt="">`
-    : `<span class="autocomplete-thumb-placeholder">&#9835;</span>`;
-  return `
-    <div class="autocomplete-item${index === autocompleteHighlight ? ' active' : ''}" data-index="${index}">
-      ${img}
-      <div>
-        <div>${escapeHtml(c.title)}</div>
-        <div class="card-subtitle">${escapeHtml(c.artist)}</div>
-      </div>
-    </div>
-  `;
-}
-
-function renderAutocompleteDropdown() {
-  const dropdown = document.getElementById('song-title-dropdown');
-  if (!autocompleteCandidates.length) {
-    dropdown.style.display = 'none';
-    dropdown.innerHTML = '';
-    return;
-  }
-  dropdown.innerHTML = autocompleteCandidates.map(candidateItemTemplate).join('');
-  dropdown.style.display = 'block';
-  dropdown.querySelectorAll('.autocomplete-item').forEach((el) => {
-    el.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      selectCandidate(autocompleteCandidates[parseInt(el.dataset.index, 10)]);
-    });
-  });
-}
-
-function closeAutocompleteDropdown() {
-  autocompleteCandidates = [];
-  autocompleteHighlight = -1;
-  renderAutocompleteDropdown();
-}
-
-async function selectCandidate(candidate) {
+async function onSongCandidateSelected(candidate) {
   document.getElementById('song-title-input').value = candidate.title;
   document.getElementById('song-artist-input').value = candidate.artist;
-  closeAutocompleteDropdown();
 
   const statusEl = document.getElementById('song-links-status');
   statusEl.textContent = 'Recherche des liens YouTube / Spotify…';
@@ -344,50 +303,6 @@ async function selectCandidate(candidate) {
   }
 }
 
-function initTitleAutocomplete() {
-  const input = document.getElementById('song-title-input');
-
-  input.addEventListener('input', () => {
-    const query = input.value.trim();
-    clearTimeout(autocompleteTimer);
-    if (query.length < 2) {
-      closeAutocompleteDropdown();
-      return;
-    }
-    autocompleteTimer = setTimeout(async () => {
-      try {
-        autocompleteCandidates = await api.get(`/api/music-search?q=${encodeURIComponent(query)}`);
-        autocompleteHighlight = -1;
-        renderAutocompleteDropdown();
-      } catch (err) {
-        closeAutocompleteDropdown();
-      }
-    }, 300);
-  });
-
-  input.addEventListener('keydown', (e) => {
-    if (!autocompleteCandidates.length) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      autocompleteHighlight = Math.min(autocompleteHighlight + 1, autocompleteCandidates.length - 1);
-      renderAutocompleteDropdown();
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      autocompleteHighlight = Math.max(autocompleteHighlight - 1, 0);
-      renderAutocompleteDropdown();
-    } else if (e.key === 'Enter' && autocompleteHighlight >= 0) {
-      e.preventDefault();
-      selectCandidate(autocompleteCandidates[autocompleteHighlight]);
-    } else if (e.key === 'Escape') {
-      closeAutocompleteDropdown();
-    }
-  });
-
-  input.addEventListener('blur', () => {
-    setTimeout(closeAutocompleteDropdown, 150);
-  });
-}
-
 (async function init() {
   me = await initNav('repertoire');
   await loadInstruments();
@@ -396,6 +311,10 @@ function initTitleAutocomplete() {
     const isOpen = document.getElementById('add-song-panel').style.display !== 'none';
     setAddSongPanelOpen(!isOpen);
   });
-  initTitleAutocomplete();
+  songAutocomplete = createTitleAutocomplete({
+    inputId: 'song-title-input',
+    dropdownId: 'song-title-dropdown',
+    onSelect: onSongCandidateSelected,
+  });
   await loadSongs();
 })();
