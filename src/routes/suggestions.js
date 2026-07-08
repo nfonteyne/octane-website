@@ -2,6 +2,7 @@ const express = require('express');
 const suggestionsRepo = require('../repositories/suggestionsRepo');
 const { requireAdmin } = require('../auth/middleware');
 const { isValidYoutubeUrl } = require('../lib/youtube');
+const { isValidSpotifyUrl } = require('../lib/spotify');
 const asyncHandler = require('../lib/asyncHandler');
 
 const router = express.Router();
@@ -26,17 +27,21 @@ router.get(
 router.post(
   '/',
   asyncHandler(async (req, res) => {
-    const { title, artist, youtubeUrl, description } = req.body || {};
+    const { title, artist, youtubeUrl, spotifyUrl, description } = req.body || {};
     if (!title || !title.trim() || !youtubeUrl || !youtubeUrl.trim()) {
       return res.status(400).json({ error: 'title_and_youtube_url_required' });
     }
     if (!isValidYoutubeUrl(youtubeUrl.trim())) {
       return res.status(400).json({ error: 'invalid_youtube_url' });
     }
+    if (spotifyUrl && !isValidSpotifyUrl(spotifyUrl.trim())) {
+      return res.status(400).json({ error: 'invalid_spotify_url' });
+    }
     const suggestion = await suggestionsRepo.create({
       title: title.trim(),
       artist: artist ? artist.trim() : null,
       youtubeUrl: youtubeUrl.trim(),
+      spotifyUrl: spotifyUrl ? spotifyUrl.trim() : null,
       description: description ? description.trim() : null,
       suggestedBy: req.user.id,
     });
@@ -91,7 +96,6 @@ router.delete(
 
 router.post(
   '/:id/promote',
-  requireAdmin,
   asyncHandler(async (req, res) => {
     const song = await suggestionsRepo.promoteToSong(req.params.id, req.user.id);
     if (!song) return res.status(404).json({ error: 'not_found' });

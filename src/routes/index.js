@@ -5,6 +5,7 @@ const songsRoutes = require('./songs');
 const suggestionsRoutes = require('./suggestions');
 const setlistsRoutes = require('./setlists');
 const musicSearchRoutes = require('./musicSearch');
+const calendarRoutes = require('./calendar');
 
 const router = express.Router();
 
@@ -14,5 +15,6 @@ router.use('/songs', songsRoutes);
 router.use('/suggestions', suggestionsRoutes);
 router.use('/setlists', setlistsRoutes);
 router.use('/music-search', musicSearchRoutes);
+router.use('/calendar', calendarRoutes);
 
 module.exports = router;

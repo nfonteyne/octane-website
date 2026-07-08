@@ -29,6 +29,7 @@ async function initNav(activePage) {
       <a href="/index.html" class="${activePage === 'repertoire' ? 'active' : ''}">Répertoire</a>
       <a href="/suggestions.html" class="${activePage === 'suggestions' ? 'active' : ''}">Suggestions</a>
       <a href="/setlist.html" class="${activePage === 'setlist' ? 'active' : ''}">Prochain concert</a>
+      <a href="/calendar.html" class="${activePage === 'calendar' ? 'active' : ''}">Disponibilités</a>
       <a href="/history.html" class="${activePage === 'history' ? 'active' : ''}">Historique</a>
     </div>
     <div class="nav-user">

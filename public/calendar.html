@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disponibilités — Octane</title>
+<script src="/js/theme-init.js"></script>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <nav id="main-nav"></nav>
+</header>
+<main>
+  <div class="section-header">
+    <div>
+      <h1 style="margin:0">Disponibilités</h1>
+      <p class="page-subtitle" id="last-checked" style="margin:0.25rem 0 0">Chargement…</p>
+    </div>
+    <div style="display:flex; gap:0.5rem;">
+      <button type="button" class="secondary nav-toggle calendar-filters-toggle" id="btn-filters-toggle">Filtres</button>
+      <button type="button" id="btn-refresh">Actualiser les disponibilités</button>
+    </div>
+  </div>
+  <div id="error"></div>
+
+  <div class="calendar-layout">
+    <div class="calendar-filters-backdrop" id="filters-backdrop"></div>
+    <aside class="calendar-filters panel" id="filters-panel">
+      <div class="section-header" style="margin:0 0 0.5rem">
+        <h3 style="margin:0">Filtres</h3>
+        <button type="button" class="secondary icon-btn calendar-filters-close" id="btn-filters-close">&times;</button>
+      </div>
+      <p class="note" style="margin:0 0 0.5rem">Personnes incluses</p>
+      <div id="people-list" class="calendar-people-list"></div>
+    </aside>
+
+    <div class="calendar-main">
+      <div class="calendar-header-row">
+        <span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span>
+      </div>
+      <div class="calendar-grid" id="calendar-grid"></div>
+      <div class="calendar-legend" id="legend"></div>
+    </div>
+  </div>
+</main>
+
+<div id="toast" class="toast hidden"></div>
+
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div class="modal card">
+    <button type="button" class="icon-btn secondary modal-close" id="modal-close">&times;</button>
+    <div class="modal-date card-title" id="modal-date"></div>
+    <div class="modal-time note" id="modal-time"></div>
+    <div class="modal-section">
+      <div class="modal-section-title available">Disponibles</div>
+      <div class="modal-people" id="modal-available"></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title busy">Indisponibles</div>
+      <div class="modal-people" id="modal-busy"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/render.js"></script>
+<script src="/js/nav.js"></script>
+<script src="/js/calendar.js"></script>
+</body>
+</html>

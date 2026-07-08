@@ -1,0 +1,1 @@
+ALTER TABLE suggestions ADD COLUMN IF NOT EXISTS spotify_url TEXT;

@@ -238,10 +238,11 @@ erDiagram
 | Page | Accès | Description |
 |---|---|---|
 | `/index.html` | Tous (lecture et écriture) | Répertoire des morceaux travaillés, liens/vignettes YouTube et Spotify, tutos embarqués par morceau et par instrument. Ajout avec autocomplete titre/artiste + liens auto-trouvés ([détails](#recherche-automatique-de-morceaux)) |
-| `/suggestions.html` | Tous | Proposer un morceau (avec lien YouTube embarqué + note libre), voter approuver/rejeter avec commentaire, attribué nominativement |
+| `/suggestions.html` | Tous | Proposer un morceau (liens YouTube et Spotify + note libre), voter approuver/rejeter avec commentaire (attribué nominativement), ajouter une suggestion au répertoire |
 | `/setlist.html` | Tous (lecture et écriture) | Setlist du prochain concert : choix des morceaux du répertoire, ordre, notes, section rappel |
-| `/history.html`, `/history-detail.html` | Tous (lecture seule) | Historique des setlists des concerts passés |
+| `/history.html`, `/history-detail.html` | Tous (lecture et écriture) | Historique des setlists des concerts passés — modifiable (date, morceaux, ordre, rappel) et supprimable en cas d'erreur |
 | `/profile.html` | Chacun voit le sien | Profil issu d'Authentik (nom, avatar, groupes) + votre activité (morceaux ajoutés, suggestions, votes) |
+| `/calendar.html` | Tous (lecture et écriture) | Disponibilités du groupe pour les 3 prochaines semaines (calendrier, filtres par personne, modale par jour) — [détails](#disponibilités-calendrier) |
 
 Le mode par défaut est la consultation ; les pages Répertoire, Setlist et Suggestions sont interactives pour toute personne connectée (chaque action reste attribuée nominativement via Authentik).
 
@@ -249,8 +250,8 @@ Un bouton clair/sombre dans la barre de navigation permet de forcer un thème (m
 
 ## Rôles
 
-- **Membre** : tout le monde — consulte, ajoute/modifie/supprime des morceaux du répertoire et leurs tutos, crée/modifie des concerts et leur setlist, propose des suggestions, vote/commente.
-- **Admin** : en plus, modère les suggestions (promouvoir une suggestion approuvée en morceau du répertoire, la rejeter, la supprimer).
+- **Membre** : tout le monde — consulte, ajoute/modifie/supprime des morceaux du répertoire et leurs tutos, crée/modifie/supprime des concerts (à venir ou passés) et leur setlist, propose des suggestions, vote/commente, ajoute une suggestion au répertoire.
+- **Admin** : en plus, rejette ou supprime une suggestion (modération).
 
 Le rôle admin n'est volontairement pas plus étendu pour l'instant : son périmètre exact (au-delà de la modération des suggestions) reste ouvert et pourra évoluer. Il n'y a pas de gestion des utilisateurs dans l'application elle-même — Authentik reste la seule source de vérité pour qui a accès et qui est admin (claim `groups`, recalculé à chaque connexion).
 
@@ -268,6 +269,48 @@ En sélectionnant une suggestion, l'app tente aussi de retrouver automatiquement
 Si aucune des deux n'est configurée, l'autocomplete titre/artiste marche quand même — seuls les liens ne se remplissent pas tout seuls. Vous pouvez ajouter ces clés à tout moment dans `.env` sans changement de code, juste un redémarrage du conteneur `app`.
 
 Si la recherche ne trouve rien (morceau trop obscur, faute de frappe...), rien ne bloque : titre, artiste et liens restent modifiables à la main comme avant.
+
+## Disponibilités (calendrier)
+
+La page `/calendar.html` montre, pour les 3 prochaines semaines, les créneaux de répétition (lun–ven 18h30–21h, sam–dim 15h–19h) où chaque membre est disponible — calculé par un workflow **n8n** externe qui interroge Google Calendar (FreeBusy API) de chaque personne. Cette fonctionnalité est une fusion complète de l'ancien projet séparé [octane-calendar](https://github.com/nfonteyne/octane-calendar) dans cette application (même thème, même authentification, un seul déploiement).
+
+### Fonctionnement
+
+```mermaid
+flowchart LR
+    UI["Page /calendar.html"]
+    API["API /api/calendar/*"]
+    N8N["Workflow n8n"]
+    GCal[("Google Calendar<br/>FreeBusy API")]
+    DB[("Postgres<br/>calendar_*")]
+
+    UI -- "Actualiser" --> API
+    API -- "déclenche (GET webhook)" --> N8N
+    N8N -- "interroge" --> GCal
+    N8N -- "{ slots: [...] }" --> API
+    API -- "ingère" --> DB
+    DB -- "lecture" --> API
+    API -- "sert les données" --> UI
+```
+
+- Bouton **"Actualiser les disponibilités"** : appelle `POST /api/calendar/refresh`, qui déclenche le webhook n8n et attend sa réponse en tâche de fond (jusqu'à 5 min), pendant que la page sonde `GET /api/calendar/workflow-status` toutes les 4 secondes.
+- Deux endpoints sont appelés **directement par n8n** (pas par le navigateur, donc pas de session possible) : `POST /api/calendar/ingest` (résultats d'une ingestion) et `POST /api/calendar/workflow-error` (notifié par le workflow d'erreur n8n). Ils sont protégés par un secret partagé plutôt que par la connexion Authentik :
+  ```
+  X-Calendar-Webhook-Secret: <valeur de CALENDAR_WEBHOOK_SECRET>
+  ```
+  Si vous reprenez un workflow n8n existant (depuis l'ancien `octane-calendar`), mettez à jour ses noeuds HTTP pour pointer vers `https://octane.dandrove.com/api/calendar/...` et ajouter ce header.
+
+### Variables d'environnement
+
+| Variable | Description |
+|---|---|
+| `N8N_WEBHOOK_URL` | URL complète du webhook n8n (production, pas l'URL de test) — **optionnel** : sans elle, la consultation des disponibilités déjà connues fonctionne, seul le bouton "Actualiser" renvoie une erreur explicite |
+| `N8N_WEBHOOK_USER` / `N8N_WEBHOOK_PASS` | Identifiants HTTP basic-auth configurés sur le noeud webhook n8n, si vous en avez mis un |
+| `CALENDAR_WEBHOOK_SECRET` | **Requis** — générer avec `openssl rand -hex 32`, à renseigner aussi côté n8n (header `X-Calendar-Webhook-Secret`) |
+
+### Personnes suivies
+
+La liste des personnes (et leur couleur) est amorcée en base par la migration `006_calendar_seed_people.sql` (Nathan, Raphaël, Yann, Jules, AK — mêmes noms que dans le workflow n8n d'origine, dont le mapping calendrier Google ↔ nom se fait dans le noeud "Build FreeBusy Request"). De nouvelles personnes apparaissant dans les données ingérées sont ajoutées automatiquement avec une couleur de la palette.
 
 ## Prérequis
 
@@ -300,6 +343,9 @@ Le [Démarrage rapide](#démarrage-rapide-serveur-avec-traefik) ci-dessus couvre
 | `TRAEFIK_NETWORK_NAME` | Nom du réseau Docker externe partagé avec Traefik et Authentik (défaut `traefik-proxy`) |
 | `APP_DOMAIN` | Nom de domaine public utilisé par Traefik pour router vers l'app (ex: `octane.dandrove.com`) |
 | `APP_PORT` | Port hôte utilisé uniquement par `docker-compose.dev.yml` (test local sans Traefik) |
+| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` / `YOUTUBE_API_KEY` | Optionnels — voir [Recherche automatique de morceaux](#recherche-automatique-de-morceaux) |
+| `N8N_WEBHOOK_URL` / `N8N_WEBHOOK_USER` / `N8N_WEBHOOK_PASS` | Optionnels — voir [Disponibilités (calendrier)](#disponibilités-calendrier) |
+| `CALENDAR_WEBHOOK_SECRET` | Requis — voir [Disponibilités (calendrier)](#disponibilités-calendrier) |
 
 Les migrations SQL (`src/db/migrations/*.sql`) sont exécutées automatiquement au démarrage du conteneur `app`, de façon idempotente (une table `schema_migrations` garde la trace des fichiers déjà appliqués).
 

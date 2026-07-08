@@ -56,6 +56,7 @@ function detailTemplate(s) {
   const myVote = s.votes.find((v) => v.user_id === me.id);
   return `
     ${embed ? `<div class="youtube-embed"><iframe src="${embed}" allowfullscreen></iframe></div>` : `<p><a href="${escapeHtml(s.youtube_url)}" target="_blank" rel="noopener">${escapeHtml(s.youtube_url)}</a></p>`}
+    ${s.spotify_url ? `<div class="song-links"><a class="pill-link spotify" href="${escapeHtml(s.spotify_url)}" target="_blank" rel="noopener">&#9835; Spotify</a></div>` : ''}
     ${s.description ? `<div class="suggestion-note">${escapeHtml(s.description)}</div>` : ''}
 
     <form class="inline-form vote-form" data-id="${s.id}">
@@ -73,14 +74,14 @@ function detailTemplate(s) {
       ${s.votes.length ? s.votes.map(voteItemTemplate).join('') : '<p class="empty">Aucun vote pour le moment.</p>'}
     </div>
 
-    ${me.isAdmin ? `
     <form class="inline-form admin-actions" data-id="${s.id}">
       <button type="button" class="promote-btn" data-id="${s.id}" ${s.promoted_song_id ? 'disabled' : ''}>
-        ${s.promoted_song_id ? 'Déjà au répertoire' : 'Promouvoir au répertoire'}
+        ${s.promoted_song_id ? 'Déjà au répertoire' : 'Ajouter au répertoire'}
       </button>
+      ${me.isAdmin ? `
       <button type="button" class="secondary reject-btn" data-id="${s.id}">Marquer rejeté</button>
-      <button type="button" class="danger delete-btn" data-id="${s.id}">Supprimer</button>
-    </form>` : ''}
+      <button type="button" class="danger delete-btn" data-id="${s.id}">Supprimer</button>` : ''}
+    </form>
   `;
 }
 
@@ -188,9 +189,10 @@ async function onAddSuggestion(e) {
   const title = form.title.value.trim();
   const artist = form.artist.value.trim();
   const youtubeUrl = form.youtubeUrl.value.trim();
+  const spotifyUrl = form.spotifyUrl.value.trim();
   const description = form.description.value.trim();
   try {
-    await api.post('/api/suggestions', { title, artist, youtubeUrl, description });
+    await api.post('/api/suggestions', { title, artist, youtubeUrl, spotifyUrl, description });
     form.reset();
     document.getElementById('suggestion-link-status').textContent = '';
     if (suggestionAutocomplete) suggestionAutocomplete.close();
@@ -217,16 +219,20 @@ async function onSuggestionCandidateSelected(candidate) {
   document.getElementById('suggestion-artist-input').value = candidate.artist;
 
   const statusEl = document.getElementById('suggestion-link-status');
-  statusEl.textContent = 'Recherche du lien YouTube…';
+  statusEl.textContent = 'Recherche des liens YouTube / Spotify…';
   try {
     const links = await api.get(
       `/api/music-search/links?title=${encodeURIComponent(candidate.title)}&artist=${encodeURIComponent(candidate.artist)}`
     );
     const youtubeInput = document.getElementById('suggestion-youtube-input');
+    const spotifyInput = document.getElementById('suggestion-spotify-input');
     if (links.youtubeUrl && !youtubeInput.value) youtubeInput.value = links.youtubeUrl;
-    statusEl.textContent = links.youtubeUrl
-      ? 'Lien YouTube trouvé automatiquement.'
-      : 'Aucun lien YouTube trouvé automatiquement — à saisir manuellement.';
+    if (links.spotifyUrl && !spotifyInput.value) spotifyInput.value = links.spotifyUrl;
+
+    if (links.youtubeUrl && links.spotifyUrl) statusEl.textContent = 'Liens YouTube et Spotify trouvés automatiquement.';
+    else if (links.youtubeUrl) statusEl.textContent = 'Lien YouTube trouvé automatiquement. Aucun lien Spotify trouvé — à saisir manuellement si besoin.';
+    else if (links.spotifyUrl) statusEl.textContent = 'Lien Spotify trouvé automatiquement. Aucun lien YouTube trouvé — à saisir manuellement si besoin.';
+    else statusEl.textContent = 'Aucun lien trouvé automatiquement — vous pouvez les saisir manuellement.';
   } catch (err) {
     statusEl.textContent = '';
   }

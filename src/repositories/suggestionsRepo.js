@@ -2,7 +2,7 @@ const pool = require('../db/pool');
 
 async function findAll() {
   const { rows } = await pool.query(`
-    SELECT sg.id, sg.title, sg.artist, sg.youtube_url, sg.description, sg.status, sg.promoted_song_id,
+    SELECT sg.id, sg.title, sg.artist, sg.youtube_url, sg.spotify_url, sg.description, sg.status, sg.promoted_song_id,
            sg.created_at, sg.suggested_by, u.name AS suggested_by_name,
            COUNT(*) FILTER (WHERE v.vote = 'approve')::int AS approve_count,
            COUNT(*) FILTER (WHERE v.vote = 'reject')::int AS reject_count
@@ -17,7 +17,7 @@ async function findAll() {
 
 async function findById(id) {
   const { rows } = await pool.query(
-    `SELECT sg.id, sg.title, sg.artist, sg.youtube_url, sg.description, sg.status, sg.promoted_song_id,
+    `SELECT sg.id, sg.title, sg.artist, sg.youtube_url, sg.spotify_url, sg.description, sg.status, sg.promoted_song_id,
             sg.created_at, sg.suggested_by, u.name AS suggested_by_name
      FROM suggestions sg
      JOIN users u ON u.id = sg.suggested_by
@@ -39,12 +39,12 @@ async function findVotes(suggestionId) {
   return rows;
 }
 
-async function create({ title, artist, youtubeUrl, description, suggestedBy }) {
+async function create({ title, artist, youtubeUrl, spotifyUrl, description, suggestedBy }) {
   const { rows } = await pool.query(
-    `INSERT INTO suggestions (title, artist, youtube_url, description, suggested_by)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING id, title, artist, youtube_url, description, status, promoted_song_id, created_at, suggested_by`,
-    [title, artist || null, youtubeUrl, description || null, suggestedBy]
+    `INSERT INTO suggestions (title, artist, youtube_url, spotify_url, description, suggested_by)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id, title, artist, youtube_url, spotify_url, description, status, promoted_song_id, created_at, suggested_by`,
+    [title, artist || null, youtubeUrl, spotifyUrl || null, description || null, suggestedBy]
   );
   return rows[0];
 }
@@ -52,7 +52,7 @@ async function create({ title, artist, youtubeUrl, description, suggestedBy }) {
 async function updateStatus(id, status) {
   const { rows } = await pool.query(
     `UPDATE suggestions SET status = $2, updated_at = now() WHERE id = $1
-     RETURNING id, title, artist, youtube_url, description, status, promoted_song_id, created_at, suggested_by`,
+     RETURNING id, title, artist, youtube_url, spotify_url, description, status, promoted_song_id, created_at, suggested_by`,
     [id, status]
   );
   return rows[0] || null;
@@ -94,10 +94,17 @@ async function promoteToSong(suggestionId, addedBy) {
       return null;
     }
     const { rows: songRows } = await client.query(
-      `INSERT INTO songs (title, artist, notes, youtube_url, added_by)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO songs (title, artist, notes, youtube_url, spotify_url, added_by)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id, title, artist, notes, youtube_url, spotify_url, added_by, created_at, updated_at`,
-      [suggestion.title, suggestion.artist || suggestion.title, suggestion.description, suggestion.youtube_url, addedBy]
+      [
+        suggestion.title,
+        suggestion.artist || suggestion.title,
+        suggestion.description,
+        suggestion.youtube_url,
+        suggestion.spotify_url,
+        addedBy,
+      ]
     );
     const song = songRows[0];
     await client.query(

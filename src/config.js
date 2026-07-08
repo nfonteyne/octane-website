@@ -49,4 +49,13 @@ module.exports = {
   spotifyClientId: process.env.SPOTIFY_CLIENT_ID || null,
   spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET || null,
   youtubeApiKey: process.env.YOUTUBE_API_KEY || null,
+  // Calendar (availability) feature. N8N_* are optional: without them,
+  // viewing already-ingested availability still works, only the "refresh"
+  // button (which triggers the n8n workflow) is disabled.
+  n8nWebhookUrl: process.env.N8N_WEBHOOK_URL || null,
+  n8nWebhookUser: process.env.N8N_WEBHOOK_USER || null,
+  n8nWebhookPass: process.env.N8N_WEBHOOK_PASS || null,
+  // Required: protects the two endpoints n8n calls directly (server-to-server,
+  // no browser session involved) — see src/lib/calendarWebhookAuth.js.
+  calendarWebhookSecret: required('CALENDAR_WEBHOOK_SECRET'),
 };
