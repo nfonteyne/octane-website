@@ -1,0 +1,25 @@
+# Standalone compose file for local testing (e.g. in WSL) without a real Authentik instance.
+# Use with DEV_BYPASS_AUTH=true in .env. Run with:
+#   docker compose -f docker-compose.dev.yml up --build
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: octane
+      POSTGRES_USER: octane
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+
+volumes:
+  pgdata_dev:

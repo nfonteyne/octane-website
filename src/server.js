@@ -5,7 +5,11 @@ const { runMigrations } = require('./db/migrate');
 
 async function main() {
   await runMigrations();
-  await initOidc();
+  if (config.devBypassAuth) {
+    console.warn('DEV_BYPASS_AUTH is enabled — Authentik/OIDC is skipped. Do not use this in production.');
+  } else {
+    await initOidc();
+  }
 
   const app = createApp();
   app.listen(config.port, () => {

@@ -6,9 +6,63 @@ const asyncHandler = require('../lib/asyncHandler');
 
 const router = express.Router();
 
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+function establishSession(req, res, user, returnTo) {
+  req.session.regenerate((err) => {
+    if (err) throw err;
+    req.session.userId = user.id;
+    req.session.save((saveErr) => {
+      if (saveErr) throw saveErr;
+      res.redirect(returnTo || '/');
+    });
+  });
+}
+
+// Dev-only login: no Authentik involved, lets you pick a name/admin flag
+// to test the app locally. Only active when DEV_BYPASS_AUTH=true.
+async function devLogin(req, res) {
+  const { name, admin, returnTo } = req.query;
+
+  if (!name) {
+    res.set('Content-Type', 'text/html');
+    return res.send(`<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>Connexion (mode dev)</title></head>
+<body style="font-family: system-ui, sans-serif; max-width: 400px; margin: 60px auto;">
+  <h1>Connexion (mode dev)</h1>
+  <p>Authentik n'est pas connecté (DEV_BYPASS_AUTH=true). Choisissez une identité de test.</p>
+  <form method="get" action="/auth/login">
+    <input type="hidden" name="returnTo" value="${escapeHtml(returnTo || '/')}">
+    <p><label>Nom : <input name="name" required autofocus></label></p>
+    <p><label><input type="checkbox" name="admin" value="1"> Compte admin</label></p>
+    <button type="submit">Se connecter</button>
+  </form>
+</body>
+</html>`);
+  }
+
+  const user = await usersRepo.upsertFromClaims({
+    sub: `dev:${name}`,
+    name,
+    email: `${String(name).toLowerCase().replace(/\s+/g, '.')}@dev.local`,
+    isAdmin: admin === '1' || admin === 'true',
+  });
+
+  establishSession(req, res, user, returnTo);
+}
+
 router.get(
   '/login',
   asyncHandler(async (req, res) => {
+    if (config.devBypassAuth) {
+      return devLogin(req, res);
+    }
+
     const oidcConfig = getOidcConfig();
     const codeVerifier = client.randomPKCECodeVerifier();
     const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
@@ -36,6 +90,10 @@ router.get(
 router.get(
   '/callback',
   asyncHandler(async (req, res) => {
+    if (config.devBypassAuth) {
+      return res.redirect('/auth/login');
+    }
+
     const oidcConfig = getOidcConfig();
     const pending = req.session.oidc;
     if (!pending) {
@@ -68,14 +126,7 @@ router.get(
     delete req.session.oidc;
     delete req.session.returnTo;
 
-    req.session.regenerate((err) => {
-      if (err) throw err;
-      req.session.userId = user.id;
-      req.session.save((saveErr) => {
-        if (saveErr) throw saveErr;
-        res.redirect(returnTo);
-      });
-    });
+    establishSession(req, res, user, returnTo);
   })
 );
 

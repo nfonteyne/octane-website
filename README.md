@@ -154,7 +154,32 @@ docker compose up --build
 
 Les migrations SQL (`src/db/migrations/*.sql`) sont exécutées automatiquement au démarrage du conteneur `app`, de façon idempotente (une table `schema_migrations` garde la trace des fichiers déjà appliqués).
 
-## Développement local (sans Docker)
+## Tester en local sans Authentik (ex: dans WSL)
+
+Pas besoin d'avoir Authentik pour essayer l'application en premier lieu. Un mode `DEV_BYPASS_AUTH` remplace la redirection OIDC par un simple formulaire "choisissez un nom" — **à n'utiliser qu'en local, jamais en production**.
+
+```bash
+cp .env.example .env
+```
+
+Dans `.env`, mettre :
+
+```
+DEV_BYPASS_AUTH=true
+DATABASE_URL=postgres://octane:changeme@postgres:5432/octane
+POSTGRES_PASSWORD=changeme
+SESSION_SECRET=une-longue-chaine-aleatoire
+```
+
+(Les variables `AUTHENTIK_*` / `OIDC_*` peuvent rester vides tant que `DEV_BYPASS_AUTH=true`.)
+
+Puis, avec Docker Compose (fichier séparé `docker-compose.dev.yml`, sans dépendance au réseau Authentik) :
+
+```bash
+docker compose -f docker-compose.dev.yml up --build
+```
+
+Ou sans Docker du tout, avec un Postgres local :
 
 ```bash
 npm install
@@ -162,6 +187,10 @@ npm install
 npm run migrate
 npm start
 ```
+
+Ouvrir `http://localhost:3000` : vous serez redirigé vers `/auth/login`, qui affiche un formulaire pour choisir un nom (et cocher "Compte admin" si besoin) au lieu de passer par Authentik. Chaque nom saisi crée un utilisateur distinct et persistant en base — pratique pour tester le vote sur les suggestions avec plusieurs "personnes" (ouvrez un autre navigateur ou une fenêtre de navigation privée pour vous connecter sous un second nom).
+
+Une fois satisfait, repassez `DEV_BYPASS_AUTH=false` et configurez les variables `AUTHENTIK_*`/`OIDC_*` avant de déployer avec `docker-compose.yml` (celui avec le réseau Authentik).
 
 ## Structure du projet
 
