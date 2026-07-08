@@ -237,7 +237,7 @@ erDiagram
 
 | Page | Accès | Description |
 |---|---|---|
-| `/index.html` | Tous (lecture et écriture) | Répertoire des morceaux travaillés, liens/vignettes YouTube et Spotify, tutos embarqués par morceau et par instrument |
+| `/index.html` | Tous (lecture et écriture) | Répertoire des morceaux travaillés, liens/vignettes YouTube et Spotify, tutos embarqués par morceau et par instrument. Ajout avec autocomplete titre/artiste + liens auto-trouvés ([détails](#recherche-automatique-de-morceaux)) |
 | `/suggestions.html` | Tous | Proposer un morceau (avec lien YouTube embarqué + note libre), voter approuver/rejeter avec commentaire, attribué nominativement |
 | `/setlist.html` | Tous (lecture et écriture) | Setlist du prochain concert : choix des morceaux du répertoire, ordre, notes, section rappel |
 | `/history.html`, `/history-detail.html` | Tous (lecture seule) | Historique des setlists des concerts passés |
@@ -253,6 +253,21 @@ Un bouton clair/sombre dans la barre de navigation permet de forcer un thème (m
 - **Admin** : en plus, modère les suggestions (promouvoir une suggestion approuvée en morceau du répertoire, la rejeter, la supprimer).
 
 Le rôle admin n'est volontairement pas plus étendu pour l'instant : son périmètre exact (au-delà de la modération des suggestions) reste ouvert et pourra évoluer. Il n'y a pas de gestion des utilisateurs dans l'application elle-même — Authentik reste la seule source de vérité pour qui a accès et qui est admin (claim `groups`, recalculé à chaque connexion).
+
+## Recherche automatique de morceaux
+
+En tapant un titre dans le formulaire "Ajouter un morceau" du répertoire, une liste de suggestions apparaît (titre, artiste, pochette), basée sur l'[iTunes Search API](https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/) d'Apple — **gratuite, sans clé, sans inscription**, donc ça fonctionne dès le premier déploiement sans rien configurer.
+
+En sélectionnant une suggestion, l'app tente aussi de retrouver automatiquement les liens **YouTube** et **Spotify** correspondants. Ça, en revanche, nécessite des identifiants (facultatifs) :
+
+| Variable | Obtenir | Sans elle |
+|---|---|---|
+| `YOUTUBE_API_KEY` | [Google Cloud Console](https://console.cloud.google.com/) → activer "YouTube Data API v3" → créer une clé API (quota gratuit largement suffisant pour un groupe) | Le champ lien YouTube reste vide, saisie manuelle |
+| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | [Spotify for Developers](https://developer.spotify.com/dashboard) → créer une app → Client ID/Secret (flux "Client Credentials", pas de compte utilisateur impliqué) | Le champ lien Spotify reste vide, saisie manuelle |
+
+Si aucune des deux n'est configurée, l'autocomplete titre/artiste marche quand même — seuls les liens ne se remplissent pas tout seuls. Vous pouvez ajouter ces clés à tout moment dans `.env` sans changement de code, juste un redémarrage du conteneur `app`.
+
+Si la recherche ne trouve rien (morceau trop obscur, faute de frappe...), rien ne bloque : titre, artiste et liens restent modifiables à la main comme avant.
 
 ## Prérequis
 

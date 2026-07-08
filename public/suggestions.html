@@ -16,8 +16,12 @@
   <p class="page-subtitle">Proposez un morceau et votez sur les suggestions des autres — chaque vote est nominatif.</p>
   <div id="error"></div>
 
-  <div class="panel">
-    <h2 style="margin-top:0">Proposer un morceau</h2>
+  <div class="section-header">
+    <h2 style="margin:0">Toutes les suggestions</h2>
+    <button type="button" class="secondary" id="toggle-add-suggestion">+ Proposer un morceau</button>
+  </div>
+
+  <div class="panel" id="add-suggestion-panel" style="display:none">
     <form id="add-suggestion-form" class="stacked-form">
       <label>Titre <input name="title" required></label>
       <label>Artiste <input name="artist"></label>
@@ -27,7 +31,6 @@
     </form>
   </div>
 
-  <h2>Toutes les suggestions</h2>
   <div id="suggestions-list" class="card-grid"></div>
 </main>
 

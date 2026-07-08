@@ -192,10 +192,16 @@ async function onAddSuggestion(e) {
   try {
     await api.post('/api/suggestions', { title, artist, youtubeUrl, description });
     form.reset();
+    setAddSuggestionPanelOpen(false);
     await loadSuggestions();
   } catch (err) {
     showError(err.message);
   }
+}
+
+function setAddSuggestionPanelOpen(open) {
+  document.getElementById('add-suggestion-panel').style.display = open ? 'block' : 'none';
+  document.getElementById('toggle-add-suggestion').textContent = open ? 'Annuler' : '+ Proposer un morceau';
 }
 
 function showError(message) {
@@ -205,5 +211,9 @@ function showError(message) {
 (async function init() {
   me = await initNav('suggestions');
   document.getElementById('add-suggestion-form').addEventListener('submit', onAddSuggestion);
+  document.getElementById('toggle-add-suggestion').addEventListener('click', () => {
+    const isOpen = document.getElementById('add-suggestion-panel').style.display !== 'none';
+    setAddSuggestionPanelOpen(!isOpen);
+  });
   await loadSuggestions();
 })();

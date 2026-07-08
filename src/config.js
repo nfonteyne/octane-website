@@ -42,4 +42,11 @@ module.exports = {
     process.env.POST_LOGOUT_REDIRECT_URI ||
     (process.env.OIDC_REDIRECT_URI ? new URL('/', process.env.OIDC_REDIRECT_URI).href : undefined),
   adminGroupName: process.env.ADMIN_GROUP_NAME || 'octane-admins',
+  // All optional: the "add a song" autocomplete works with none of these set
+  // (title/artist suggestions come from Apple's free, key-less iTunes Search
+  // API). Without Spotify/YouTube credentials, the matching links are just
+  // left blank for manual entry instead of being auto-filled.
+  spotifyClientId: process.env.SPOTIFY_CLIENT_ID || null,
+  spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET || null,
+  youtubeApiKey: process.env.YOUTUBE_API_KEY || null,
 };

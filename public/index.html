@@ -16,19 +16,28 @@
   <p class="page-subtitle">Les morceaux travaillés par le groupe, avec liens d'écoute et tutos par instrument.</p>
   <div id="error"></div>
 
-  <div class="panel">
-    <h2 style="margin-top:0">Ajouter un morceau</h2>
+  <div class="section-header">
+    <h2 style="margin:0">Morceaux travaillés</h2>
+    <button type="button" class="secondary" id="toggle-add-song">+ Ajouter un morceau</button>
+  </div>
+
+  <div class="panel" id="add-song-panel" style="display:none">
     <form id="add-song-form" class="stacked-form">
-      <label>Titre <input name="title" required></label>
-      <label>Artiste <input name="artist" required></label>
+      <div class="autocomplete-wrapper">
+        <label>Titre
+          <input name="title" id="song-title-input" autocomplete="off" required>
+        </label>
+        <div class="autocomplete-dropdown" id="song-title-dropdown" style="display:none"></div>
+      </div>
+      <label>Artiste <input name="artist" id="song-artist-input" required></label>
       <label>Notes <input name="notes"></label>
-      <label>Lien YouTube <input name="youtubeUrl" type="url" placeholder="https://youtube.com/watch?v=..."></label>
-      <label>Lien Spotify <input name="spotifyUrl" type="url" placeholder="https://open.spotify.com/track/..."></label>
+      <label>Lien YouTube <input name="youtubeUrl" id="song-youtube-input" type="url" placeholder="https://youtube.com/watch?v=..."></label>
+      <label>Lien Spotify <input name="spotifyUrl" id="song-spotify-input" type="url" placeholder="https://open.spotify.com/track/..."></label>
+      <p class="note" id="song-links-status"></p>
       <button type="submit">Ajouter au répertoire</button>
     </form>
   </div>
 
-  <h2>Morceaux travaillés</h2>
   <div id="songs-list" class="card-grid"></div>
 </main>
 
