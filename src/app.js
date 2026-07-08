@@ -8,6 +8,10 @@ const apiRouter = require('./routes');
 function createApp() {
   const app = express();
 
+  // Behind Traefik: without this, req.protocol/req.secure ignore
+  // X-Forwarded-Proto and always report the plain-HTTP hop to the container.
+  app.set('trust proxy', 1);
+
   app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
   app.use(express.json());

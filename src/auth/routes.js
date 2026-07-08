@@ -83,7 +83,13 @@ router.get(
       code_challenge_method: 'S256',
     });
 
-    res.redirect(authUrl.href);
+    // Force the session write to complete (and surface any store error)
+    // before sending the redirect, instead of relying on express-session's
+    // implicit save-on-response-end behavior.
+    req.session.save((err) => {
+      if (err) throw err;
+      res.redirect(authUrl.href);
+    });
   })
 );
 
@@ -97,6 +103,12 @@ router.get(
     const oidcConfig = getOidcConfig();
     const pending = req.session.oidc;
     if (!pending) {
+      console.warn(
+        '[auth] /auth/callback reached with no pending OIDC state.',
+        'sessionID:', req.sessionID,
+        'cookie header present:', Boolean(req.headers.cookie),
+        'session keys:', Object.keys(req.session || {}),
+      );
       return res.status(400).send('Session de connexion expirée, réessayez.');
     }
 
