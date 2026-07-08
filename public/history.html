@@ -12,10 +12,17 @@
   <nav id="main-nav"></nav>
 </header>
 <main>
-  <h1>Historique des concerts</h1>
-  <p class="page-subtitle">Retrouvez la setlist jouée à chaque concert précédent.</p>
+  <div class="section-header">
+    <div>
+      <h1 style="margin:0">Historique des concerts</h1>
+      <p class="page-subtitle" style="margin:0.25rem 0 0">Du plus récent au plus ancien en défilant vers le bas.</p>
+    </div>
+    <button type="button" class="secondary" id="toggle-view-btn">Vue réduite</button>
+  </div>
   <div id="error"></div>
-  <div id="history-list" class="card-grid"></div>
+
+  <div id="timeline-view"></div>
+  <div id="compact-view" class="card-grid" style="display:none"></div>
 </main>
 
 <script src="/js/api.js"></script>

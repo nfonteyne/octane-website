@@ -240,7 +240,7 @@ erDiagram
 | `/index.html` | Tous (lecture et écriture) | Répertoire des morceaux travaillés, liens/vignettes YouTube et Spotify, tutos embarqués par morceau et par instrument. Ajout avec autocomplete titre/artiste + liens auto-trouvés ([détails](#recherche-automatique-de-morceaux)) |
 | `/suggestions.html` | Tous | Proposer un morceau (liens YouTube et Spotify + note libre), voter approuver/rejeter avec commentaire (attribué nominativement), ajouter une suggestion au répertoire |
 | `/setlist.html` | Tous (lecture et écriture) | Setlist du prochain concert : choix des morceaux du répertoire, ordre, notes, section rappel |
-| `/history.html`, `/history-detail.html` | Tous (lecture et écriture) | Historique des setlists des concerts passés — modifiable (date, morceaux, ordre, rappel) et supprimable en cas d'erreur |
+| `/history.html`, `/history-detail.html` | Tous (lecture et écriture) | Historique des concerts passés, modifiable (date, morceaux, ordre, rappel) et supprimable. `/history.html` propose deux vues : chronologique (par défaut, tous les concerts détaillés avec YouTube embarqué par morceau, du plus récent au plus ancien) et réduite (liste compacte, comme avant) |
 | `/profile.html` | Chacun voit le sien | Profil issu d'Authentik (nom, avatar, groupes) + votre activité (morceaux ajoutés, suggestions, votes) |
 | `/calendar.html` | Tous (lecture et écriture) | Disponibilités du groupe pour les 3 prochaines semaines (calendrier, filtres par personne, modale par jour) — [détails](#disponibilités-calendrier) |
 

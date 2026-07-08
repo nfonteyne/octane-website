@@ -21,6 +21,31 @@ async function findHistory() {
   return rows;
 }
 
+async function findHistoryWithSongs() {
+  const { rows } = await pool.query(
+    `SELECT sl.id, sl.name, sl.venue, sl.concert_date, sl.created_by, sl.created_at, sl.updated_at,
+            COALESCE(
+              (
+                SELECT json_agg(
+                         json_build_object(
+                           'id', ss.id, 'song_id', ss.song_id, 'title', s.title, 'artist', s.artist,
+                           'youtube_url', s.youtube_url, 'spotify_url', s.spotify_url,
+                           'position', ss.position, 'note', ss.note, 'is_encore', ss.is_encore
+                         )
+                         ORDER BY ss.is_encore, ss.position
+                       )
+                FROM setlist_songs ss
+                JOIN songs s ON s.id = ss.song_id
+                WHERE ss.setlist_id = sl.id
+              ), '[]'
+            ) AS songs
+     FROM setlists sl
+     WHERE sl.concert_date < CURRENT_DATE
+     ORDER BY sl.concert_date DESC`
+  );
+  return rows;
+}
+
 async function findById(id) {
   const { rows } = await pool.query(
     `SELECT id, name, venue, concert_date, created_by, created_at, updated_at
@@ -107,6 +132,7 @@ async function removeSong(setlistId, setlistSongId) {
 module.exports = {
   findNext,
   findHistory,
+  findHistoryWithSongs,
   findById,
   findSongs,
   create,

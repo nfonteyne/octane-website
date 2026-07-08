@@ -670,6 +670,31 @@ button:disabled {
   border: 0;
 }
 
+/* ---------- History timeline ---------- */
+
+.timeline-concert { margin-bottom: 1.5rem; }
+
+.timeline-songs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.timeline-song-card {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem;
+}
+
+.timeline-song-title { font-weight: 600; }
+
+.timeline-embed {
+  max-width: none;
+  margin-top: 0.5rem;
+}
+
 /* ---------- Setlist ---------- */
 
 .setlist-columns {

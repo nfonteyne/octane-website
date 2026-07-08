@@ -21,6 +21,9 @@ router.get(
 router.get(
   '/history',
   asyncHandler(async (req, res) => {
+    if (req.query.full) {
+      return res.json(await setlistsRepo.findHistoryWithSongs());
+    }
     res.json(await setlistsRepo.findHistory());
   })
 );
