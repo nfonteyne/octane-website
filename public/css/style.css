@@ -1136,3 +1136,161 @@ a.back-link:hover { color: var(--accent); }
   .timeline-embed,
   .timeline-no-embed { width: 100%; max-width: none; }
 }
+
+/* ---------- View toggle (suggestions) ---------- */
+
+.view-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.view-toggle-btn {
+  background: var(--surface);
+  color: var(--text);
+  border: none;
+  border-radius: 0;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.view-toggle-btn + .view-toggle-btn { border-left: 1px solid var(--border); }
+
+.view-toggle-btn.active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* ---------- Swipe / "Vote rapide" view ---------- */
+
+.swipe-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.swipe-stack {
+  position: relative;
+  max-width: 380px;
+  height: 420px;
+  margin: 0 auto;
+}
+
+.swipe-card {
+  position: absolute;
+  inset: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  touch-action: none;
+  transform: scale(calc(1 - var(--depth, 0) * 0.04)) translateY(calc(var(--depth, 0) * 10px));
+  transition: transform 0.2s ease;
+}
+
+.swipe-card-media {
+  position: relative;
+  flex: 1 1 auto;
+  background: var(--surface-alt);
+  min-height: 0;
+}
+
+.swipe-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.swipe-card-media .song-thumb.placeholder {
+  width: 100%;
+  height: 100%;
+  font-size: 3rem;
+}
+
+.swipe-card-media .play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.15);
+  color: #fff;
+  font-size: 2rem;
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.swipe-card-media:hover .play-overlay { opacity: 1; }
+
+.swipe-stamp {
+  position: absolute;
+  top: 1.2rem;
+  padding: 0.3rem 0.7rem;
+  border: 3px solid;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  pointer-events: none;
+  transform: rotate(-12deg);
+}
+
+.swipe-stamp.approve { left: 1.2rem; color: var(--success); border-color: var(--success); }
+.swipe-stamp.reject { right: 1.2rem; color: var(--danger); border-color: var(--danger); transform: rotate(12deg); }
+
+.swipe-card-body {
+  flex: 0 0 auto;
+  padding: 0.9rem 1.1rem;
+}
+
+.swipe-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin: 1.25rem 0;
+}
+
+.swipe-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 1.4rem;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+.swipe-btn.approve { color: var(--success); }
+.swipe-btn.reject { color: var(--danger); }
+
+/* ---------- "Mes votes" review modal ---------- */
+
+.modal-wide { max-width: 520px; max-height: 80vh; overflow-y: auto; }
+
+.vote-review-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
+  margin-bottom: 0.6rem;
+}
+
+.vote-review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.vote-review-detail { margin-top: 0.75rem; }

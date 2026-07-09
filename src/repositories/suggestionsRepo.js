@@ -1,17 +1,20 @@
 const pool = require('../db/pool');
 
-async function findAll() {
-  const { rows } = await pool.query(`
-    SELECT sg.id, sg.title, sg.artist, sg.youtube_url, sg.spotify_url, sg.description, sg.status, sg.promoted_song_id,
-           sg.created_at, sg.suggested_by, u.name AS suggested_by_name,
-           COUNT(*) FILTER (WHERE v.vote = 'approve')::int AS approve_count,
-           COUNT(*) FILTER (WHERE v.vote = 'reject')::int AS reject_count
-    FROM suggestions sg
-    JOIN users u ON u.id = sg.suggested_by
-    LEFT JOIN suggestion_votes v ON v.suggestion_id = sg.id
-    GROUP BY sg.id, u.name
-    ORDER BY sg.created_at DESC
-  `);
+async function findAll(userId) {
+  const { rows } = await pool.query(
+    `SELECT sg.id, sg.title, sg.artist, sg.youtube_url, sg.spotify_url, sg.description, sg.status, sg.promoted_song_id,
+            sg.created_at, sg.suggested_by, u.name AS suggested_by_name,
+            COUNT(*) FILTER (WHERE v.vote = 'approve')::int AS approve_count,
+            COUNT(*) FILTER (WHERE v.vote = 'reject')::int AS reject_count,
+            mv.vote AS my_vote, mv.comment AS my_vote_comment
+     FROM suggestions sg
+     JOIN users u ON u.id = sg.suggested_by
+     LEFT JOIN suggestion_votes v ON v.suggestion_id = sg.id
+     LEFT JOIN suggestion_votes mv ON mv.suggestion_id = sg.id AND mv.user_id = $1
+     GROUP BY sg.id, u.name, mv.vote, mv.comment
+     ORDER BY sg.created_at DESC`,
+    [userId]
+  );
   return rows;
 }
 

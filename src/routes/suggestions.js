@@ -10,7 +10,7 @@ const router = express.Router();
 router.get(
   '/',
   asyncHandler(async (req, res) => {
-    res.json(await suggestionsRepo.findAll());
+    res.json(await suggestionsRepo.findAll(req.user.id));
   })
 );
 
