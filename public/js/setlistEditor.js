@@ -1,7 +1,7 @@
-// Shared setlist editor used by both "prochain concert" (setlist.js) and
-// "historique" (history-detail.js): choose songs from the repertoire, order
-// them, add per-song notes, mark encore songs, save. Parameterized so the
-// caller decides how to load/create/delete the underlying setlist.
+// Shared setlist editor used by concerts.js for both the "prochain concert"
+// tab and a past concert's detail view: choose songs from the repertoire,
+// order them, add per-song notes, mark encore songs, save. Parameterized so
+// the caller decides how to load/create/delete the underlying setlist.
 function createSetlistEditor({
   containerId = 'content',
   allSongs,

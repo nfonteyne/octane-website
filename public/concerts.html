@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concerts — Octane</title>
+<script src="/js/theme-init.js"></script>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <nav id="main-nav"></nav>
+</header>
+<main>
+  <div class="section-header">
+    <h1 style="margin:0">Concerts</h1>
+    <div class="view-toggle">
+      <button type="button" class="view-toggle-btn active" id="tab-next">Prochain concert</button>
+      <button type="button" class="view-toggle-btn" id="tab-history">Historique</button>
+    </div>
+  </div>
+  <div id="error"></div>
+
+  <div id="next-view">
+    <div id="next-content">Chargement…</div>
+  </div>
+
+  <div id="history-view" style="display:none">
+    <div id="history-list-view">
+      <div class="section-header" style="margin:0 0 0.75rem">
+        <p class="page-subtitle" style="margin:0">Du plus récent au plus ancien en défilant vers le bas.</p>
+        <button type="button" class="secondary" id="toggle-history-mode-btn">Vue réduite</button>
+      </div>
+      <div id="timeline-view"></div>
+      <div id="compact-view" class="card-grid" style="display:none"></div>
+    </div>
+
+    <div id="history-detail-view" style="display:none">
+      <a href="#" class="back-link" id="back-to-history-link">&larr; Retour à l'historique</a>
+      <div id="history-detail-content"></div>
+    </div>
+  </div>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/render.js"></script>
+<script src="/js/nav.js"></script>
+<script src="/js/setlistEditor.js"></script>
+<script src="/js/concerts.js"></script>
+</body>
+</html>

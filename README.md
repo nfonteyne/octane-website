@@ -239,12 +239,11 @@ erDiagram
 |---|---|---|
 | `/index.html` | Tous (lecture et écriture) | Répertoire des morceaux travaillés, avec recherche instantanée (titre/artiste), liens/vignettes YouTube et Spotify, tutos embarqués par morceau et par instrument. Ajout avec autocomplete titre/artiste + liens auto-trouvés ([détails](#recherche-automatique-de-morceaux)) |
 | `/suggestions.html` | Tous | Proposer un morceau (liens YouTube et Spotify + note libre), voter approuver/rejeter avec commentaire (attribué nominativement), ajouter une suggestion au répertoire |
-| `/setlist.html` | Tous (lecture et écriture) | Setlist du prochain concert : choix des morceaux du répertoire, ordre, notes, section rappel, lien "Écouter la setlist sur YouTube" |
-| `/history.html`, `/history-detail.html` | Tous (lecture et écriture) | Historique des concerts passés, modifiable (date, morceaux, ordre, rappel) et supprimable, avec le même lien playlist YouTube. `/history.html` propose deux vues : chronologique (par défaut, tous les concerts détaillés avec YouTube embarqué par morceau, du plus récent au plus ancien) et réduite (liste compacte, comme avant) |
+| `/concerts.html` | Tous (lecture et écriture) | Deux onglets sur une même page. **Prochain concert** : choix des morceaux du répertoire, ordre, notes, section rappel, lien "Écouter la setlist sur YouTube". **Historique** : concerts passés, modifiables (date, morceaux, ordre, rappel) et supprimables, avec le même lien playlist ; deux vues, chronologique (par défaut, tous les concerts détaillés avec YouTube embarqué par morceau, du plus récent au plus ancien) et réduite (liste compacte) ; ouvrir un concert passé (`?tab=history&id=...`) reste partageable en lien direct |
 | `/profile.html` | Chacun voit le sien | Profil issu d'Authentik (nom, avatar, groupes) + activité personnelle (morceaux ajoutés, suggestions, votes) |
 | `/calendar.html` | Tous (lecture et écriture) | Disponibilités du groupe pour les 3 prochaines semaines (calendrier, filtres par personne, modale par jour) — [détails](#disponibilités-calendrier) |
 
-Le mode par défaut est la consultation ; les pages Répertoire, Setlist et Suggestions sont interactives pour toute personne connectée (chaque action reste attribuée nominativement via Authentik).
+Le mode par défaut est la consultation ; les pages Répertoire, Concerts et Suggestions sont interactives pour toute personne connectée (chaque action reste attribuée nominativement via Authentik).
 
 Un bouton clair/sombre dans la barre de navigation permet de forcer un thème (mémorisé par navigateur) ; sans préférence explicite, l'app suit le thème du système.
 

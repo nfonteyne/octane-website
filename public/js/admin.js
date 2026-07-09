@@ -176,7 +176,7 @@ async function onSaveSlotSettings(e) {
       </div>
 
       <h2>Créneaux de répétition</h2>
-      <p class="note">Horaires utilisés pour calculer les disponibilités sur `/calendar.html`.</p>
+      <p class="note">Horaires utilisés pour calculer les disponibilités sur <code>/calendar.html</code>.</p>
       <div class="panel">
         <form id="slot-settings-form" class="stacked-form">
           <label>Semaine — début <input type="time" name="weekdayStart" required></label>
@@ -198,7 +198,7 @@ async function onSaveSlotSettings(e) {
       <h2>Calendriers des membres</h2>
       <p class="note">
         Chaque utilisateur de l'application peut avoir plusieurs calendriers (Google, Outlook, Apple...).
-        Seuls les utilisateurs avec au moins un calendrier configuré apparaissent sur `/calendar.html`.
+        Seuls les utilisateurs avec au moins un calendrier configuré apparaissent sur <code>/calendar.html</code>.
         L'application ne conserve jamais le contenu de ces calendriers — seul un statut disponible/occupé
         par créneau est déduit et enregistré.
       </p>
