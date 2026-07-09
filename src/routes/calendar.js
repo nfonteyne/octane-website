@@ -75,6 +75,43 @@ router.post(
   })
 );
 
+// Self-service: any authenticated user manages their own calendar feeds here
+// (no requireAdmin) — distinct from the /people/:id/feeds admin routes below,
+// which let an admin manage anyone's feeds on their behalf.
+router.get(
+  '/my-feeds',
+  asyncHandler(async (req, res) => {
+    const feeds = await calendarRepo.findFeedsForUser(req.user.id);
+    res.json(feeds.map((f) => ({ id: f.id, label: f.label, icsUrl: f.ics_url })));
+  })
+);
+
+router.post(
+  '/my-feeds',
+  asyncHandler(async (req, res) => {
+    const { label, icsUrl } = req.body || {};
+    if (!icsUrl || !icsUrl.trim()) {
+      return res.status(400).json({ error: 'ics_url_required' });
+    }
+    const feed = await calendarRepo.addFeed(req.user.id, {
+      label: label ? label.trim() : null,
+      icsUrl: icsUrl.trim(),
+    });
+    res.status(201).json({ id: feed.id, label: feed.label, icsUrl: feed.ics_url });
+  })
+);
+
+router.delete(
+  '/my-feeds/:feedId',
+  asyncHandler(async (req, res) => {
+    const deleted = await calendarRepo.removeFeedForUser(parseInt(req.params.feedId, 10), req.user.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'feed_not_found' });
+    }
+    res.status(204).end();
+  })
+);
+
 router.get(
   '/people/admin',
   requireAdmin,

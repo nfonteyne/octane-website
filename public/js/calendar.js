@@ -143,6 +143,7 @@ function renderCalendar() {
 
 function buildFilters() {
   const listEl = document.getElementById('people-list');
+  listEl.innerHTML = '';
   for (const person of state.people) {
     const row = document.createElement('label');
     row.className = 'person-toggle';
@@ -172,24 +173,6 @@ function buildFilters() {
   }
 
   buildLegend();
-
-  document.getElementById('btn-refresh').addEventListener('click', async () => {
-    const btn = document.getElementById('btn-refresh');
-    btn.disabled = true;
-    btn.textContent = 'Actualisation…';
-    showToast('Synchronisation des calendriers…');
-    try {
-      await api.post('/api/calendar/refresh', {});
-      showToast('Synchronisation en cours — en attente des résultats…');
-      pollWorkflowStatus(btn);
-    } catch (err) {
-      const message = err.message === 'no_feeds_configured'
-        ? "Aucun calendrier n'est configuré — voir la page Administration."
-        : err.message;
-      showToast(message, true);
-      resetRefreshButton(btn);
-    }
-  });
 }
 
 function resetRefreshButton(btn) {
@@ -278,6 +261,7 @@ function closeFilters() {
 
 function buildLegend() {
   const el = document.getElementById('legend');
+  el.innerHTML = '';
   for (const person of state.people) {
     const item = document.createElement('div');
     item.className = 'legend-item';
@@ -307,6 +291,87 @@ function showError(message) {
   document.getElementById('error').innerHTML = `<div class="error-banner">${escapeHtml(message)}</div>`;
 }
 
+// ---------- Mes calendriers (self-service ICS feeds) ----------
+
+let myFeeds = [];
+
+// Shown for a registered feed instead of its full URL — consistent with the
+// admin/profile calendar-management panels.
+function maskIcsUrl(url) {
+  try {
+    const u = new URL(url);
+    return `${u.hostname}/••••`;
+  } catch {
+    return '••••';
+  }
+}
+
+function myFeedRowTemplate(feed) {
+  return `
+    <div class="feed-row" data-feed-id="${feed.id}">
+      <span class="feed-label">${feed.label ? `${escapeHtml(feed.label)} — ` : ''}${escapeHtml(maskIcsUrl(feed.icsUrl))}</span>
+      <button type="button" class="secondary icon-btn remove-my-feed-btn" data-feed-id="${feed.id}">Supprimer</button>
+    </div>
+  `;
+}
+
+async function loadMyFeeds() {
+  myFeeds = await api.get('/api/calendar/my-feeds');
+  renderMyFeedBanner();
+}
+
+function renderMyFeedBanner() {
+  document.getElementById('my-feed-banner').style.display = myFeeds.length ? 'none' : '';
+}
+
+function renderMyCalendarsModal() {
+  const container = document.getElementById('my-calendars-list');
+  container.innerHTML = myFeeds.length
+    ? myFeeds.map(myFeedRowTemplate).join('')
+    : '<p class="empty">Aucun calendrier configuré.</p>';
+  container.querySelectorAll('.remove-my-feed-btn').forEach((btn) => {
+    btn.addEventListener('click', () => onRemoveMyFeed(parseInt(btn.dataset.feedId, 10)));
+  });
+}
+
+function openMyCalendarsModal() {
+  renderMyCalendarsModal();
+  document.getElementById('my-calendars-modal-overlay').classList.remove('hidden');
+}
+
+function closeMyCalendarsModal() {
+  document.getElementById('my-calendars-modal-overlay').classList.add('hidden');
+}
+
+async function onAddMyFeed(e) {
+  e.preventDefault();
+  const form = e.target;
+  const label = form.label.value.trim();
+  const icsUrl = form.icsUrl.value.trim();
+  try {
+    await api.post('/api/calendar/my-feeds', { label, icsUrl });
+    form.reset();
+    await loadMyFeeds();
+    renderMyCalendarsModal();
+    await loadPeople();
+    buildFilters();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+async function onRemoveMyFeed(feedId) {
+  try {
+    await api.del(`/api/calendar/my-feeds/${feedId}`);
+    await loadMyFeeds();
+    renderMyCalendarsModal();
+    await loadPeople();
+    buildFilters();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
 (async function init() {
   await initNav('calendar');
 
@@ -314,22 +379,49 @@ function showError(message) {
   document.getElementById('modal-overlay').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeModal();
   });
+  document.getElementById('my-calendars-modal-close').addEventListener('click', closeMyCalendarsModal);
+  document.getElementById('my-calendars-modal-overlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeMyCalendarsModal();
+  });
+  document.getElementById('my-calendars-add-form').addEventListener('submit', onAddMyFeed);
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeModal();
       closeFilters();
+      closeMyCalendarsModal();
     }
   });
 
   document.getElementById('btn-filters-toggle').addEventListener('click', openFilters);
   document.getElementById('btn-filters-close').addEventListener('click', closeFilters);
   document.getElementById('filters-backdrop').addEventListener('click', closeFilters);
+  document.getElementById('btn-my-calendars').addEventListener('click', openMyCalendarsModal);
+  document.getElementById('btn-my-feed-banner-add').addEventListener('click', openMyCalendarsModal);
+
+  document.getElementById('btn-refresh').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-refresh');
+    btn.disabled = true;
+    btn.textContent = 'Actualisation…';
+    showToast('Synchronisation des calendriers…');
+    try {
+      await api.post('/api/calendar/refresh', {});
+      showToast('Synchronisation en cours — en attente des résultats…');
+      pollWorkflowStatus(btn);
+    } catch (err) {
+      const message = err.message === 'no_feeds_configured'
+        ? "Aucun calendrier n'est configuré — voir la page Administration."
+        : err.message;
+      showToast(message, true);
+      resetRefreshButton(btn);
+    }
+  });
 
   try {
     await loadPeople();
     buildFilters();
     await loadSlots();
     await loadLastChecked();
+    await loadMyFeeds();
   } catch (err) {
     showError(err.message);
   }

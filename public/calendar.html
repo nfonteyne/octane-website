@@ -19,10 +19,15 @@
     </div>
     <div style="display:flex; gap:0.5rem;">
       <button type="button" class="secondary nav-toggle calendar-filters-toggle" id="btn-filters-toggle">Filtres</button>
+      <button type="button" class="secondary" id="btn-my-calendars">Mes calendriers</button>
       <button type="button" id="btn-refresh">Actualiser les disponibilités</button>
     </div>
   </div>
   <div id="error"></div>
+  <div class="panel my-feed-banner" id="my-feed-banner" style="display:none">
+    <p class="empty">Vous n'avez pas encore ajouté de calendrier — ajoutez-en un pour apparaître dans les disponibilités.</p>
+    <button type="button" id="btn-my-feed-banner-add">Ajouter mon calendrier</button>
+  </div>
 
   <div class="calendar-layout">
     <div class="calendar-filters-backdrop" id="filters-backdrop"></div>
@@ -60,6 +65,23 @@
       <div class="modal-section-title busy">Indisponibles</div>
       <div class="modal-people" id="modal-busy"></div>
     </div>
+  </div>
+</div>
+
+<div id="my-calendars-modal-overlay" class="modal-overlay hidden">
+  <div class="modal card modal-wide">
+    <button type="button" class="icon-btn secondary modal-close" id="my-calendars-modal-close">&times;</button>
+    <h2 style="margin-top:0">Mes calendriers</h2>
+    <p class="note">
+      Ajoutez le lien ICS (iCal) d'un ou plusieurs de vos calendriers pour apparaître dans les disponibilités.
+      L'application ne conserve jamais leur contenu — seul un statut disponible/occupé par créneau est déduit.
+    </p>
+    <div id="my-calendars-list"><p class="empty">Chargement…</p></div>
+    <form id="my-calendars-add-form" class="inline-form">
+      <input name="label" placeholder="Libellé (optionnel)">
+      <input name="icsUrl" type="url" placeholder="URL du calendrier (.ics)" required>
+      <button type="submit" class="secondary icon-btn">+ Ajouter</button>
+    </form>
   </div>
 </div>
 

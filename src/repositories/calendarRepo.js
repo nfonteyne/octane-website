@@ -166,6 +166,18 @@ async function removeFeed(feedId) {
   await pool.query('DELETE FROM calendar_feeds WHERE id = $1', [feedId]);
 }
 
+// Scoped delete for the self-service "my calendars" endpoints — a user must
+// only ever be able to delete their own feeds, never guess another user's
+// feed id. Returns whether a row actually matched (both wrong id and
+// someone-else's feed look identical from the caller's side: nothing deleted).
+async function removeFeedForUser(feedId, userId) {
+  const { rowCount } = await pool.query('DELETE FROM calendar_feeds WHERE id = $1 AND user_id = $2', [
+    feedId,
+    userId,
+  ]);
+  return rowCount > 0;
+}
+
 // Every app user (not just ones already on the calendar) with their
 // registered feeds attached — lets an admin give someone their first feed,
 // not just manage existing entries. The public getPeople() above deliberately
@@ -227,6 +239,7 @@ module.exports = {
   findFeedsForUser,
   addFeed,
   removeFeed,
+  removeFeedForUser,
   getUsersWithFeeds,
   getSlotSettings,
   updateSlotSettings,

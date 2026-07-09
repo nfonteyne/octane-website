@@ -31,7 +31,6 @@ async function initNav(activePage) {
         <a href="/setlist.html" class="${activePage === 'setlist' ? 'active' : ''}">Prochain concert</a>
         <a href="/calendar.html" class="${activePage === 'calendar' ? 'active' : ''}">Disponibilités</a>
         <a href="/history.html" class="${activePage === 'history' ? 'active' : ''}">Historique</a>
-        ${me.isAdmin ? `<a href="/admin.html" class="${activePage === 'admin' ? 'active' : ''}">Administration</a>` : ''}
       </div>
       <div class="nav-user">
         <div class="nav-profile" id="nav-profile">
@@ -41,6 +40,7 @@ async function initNav(activePage) {
           </button>
           <div class="nav-profile-dropdown" id="nav-profile-dropdown">
             <a href="/profile.html">Voir profil</a>
+            ${me.isAdmin ? '<a href="/admin.html">Administration</a>' : ''}
             <a href="/auth/logout">Se déconnecter</a>
           </div>
         </div>
