@@ -131,12 +131,23 @@ router.get(
     const groups = Array.isArray(claims.groups) ? claims.groups : [];
     const isAdmin = groups.includes(config.adminGroupName);
 
+    // The ID token itself doesn't carry every profile claim (Authentik only
+    // puts `picture` on the userinfo response), so fetch it separately —
+    // best-effort, since a userinfo hiccup shouldn't block login.
+    let picture = claims.picture || null;
+    try {
+      const userinfo = await client.fetchUserInfo(oidcConfig, tokens.access_token, claims.sub);
+      picture = userinfo.picture || picture;
+    } catch (err) {
+      console.warn('[auth] failed to fetch userinfo for avatar:', err.message);
+    }
+
     const user = await usersRepo.upsertFromClaims({
       sub: claims.sub,
       name: claims.name || claims.preferred_username || claims.email || claims.sub,
       username: claims.preferred_username || null,
       email: claims.email || null,
-      avatarUrl: claims.picture || null,
+      avatarUrl: picture,
       groups,
       isAdmin,
     });
