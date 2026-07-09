@@ -332,7 +332,6 @@ function setView(view) {
   currentView = view;
   localStorage.setItem(VIEW_STORAGE_KEY, view);
   document.getElementById('suggestions-list').style.display = view === 'list' ? '' : 'none';
-  document.getElementById('add-suggestion-panel-wrap').style.display = view === 'list' ? '' : 'none';
   document.getElementById('swipe-view').style.display = view === 'swipe' ? '' : 'none';
   document.getElementById('view-toggle-list').classList.toggle('active', view === 'list');
   document.getElementById('view-toggle-swipe').classList.toggle('active', view === 'swipe');
@@ -358,10 +357,6 @@ function swipeCardTemplate(s, depth) {
       <div class="swipe-card-body">
         <div class="card-title">${escapeHtml(s.title)}${s.artist ? ` — ${escapeHtml(s.artist)}` : ''}</div>
         <div class="card-subtitle">Proposé par ${escapeHtml(s.suggested_by_name)}</div>
-        <div class="vote-tally">
-          <span class="approve">✔ ${s.approve_count}</span>
-          <span class="reject">✘ ${s.reject_count}</span>
-        </div>
       </div>
     </div>
   `;
