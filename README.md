@@ -6,7 +6,7 @@ Stack 100% JavaScript : backend Node.js/Express servant des pages HTML/CSS/JS va
 
 ## Démarrage rapide (serveur avec Traefik)
 
-Ce qui suit correspond au déploiement réel : Traefik en reverse proxy, Authentik sur le même réseau Docker externe `traefik-proxy`, l'app exposée sur `octane.dandrove.com`, l'image tirée de `ghcr.io` (voir [CI/CD](#cicd-et-mises-à-jour)).
+Ce qui suit correspond au déploiement réel : Traefik en reverse proxy, Authentik sur le même réseau Docker externe `traefik-proxy`, l'app exposée sur `octane.dandrove.com`, l'image tirée de `ghcr.io`.
 
 ```bash
 git clone https://github.com/nfonteyne/octane-website.git
@@ -32,7 +32,7 @@ APP_DOMAIN=octane.dandrove.com
 
 `POSTGRES_PASSWORD` est la seule variable Postgres à renseigner : l'app se connecte avec des champs séparés (host/port/base/utilisateur déjà pré-remplis avec les valeurs par défaut du service `postgres`), pas une URL unique — donc n'importe quel caractère spécial dans le mot de passe (généré par `openssl rand -base64` par exemple) fonctionne sans encodage particulier.
 
-`AUTHENTIK_ISSUER_URL` utilise ici le nom du conteneur Authentik sur le réseau `traefik-proxy` (remplacez `authentik-server` par le vrai nom de service de votre stack Authentik — `docker ps` sur cette stack vous le donnera) plutôt que l'URL publique, pour éviter un aller-retour inutile par Traefik. L'URL publique fonctionne aussi si vous préférez.
+`AUTHENTIK_ISSUER_URL` utilise ici le nom du conteneur Authentik sur le réseau `traefik-proxy` (à remplacer par le vrai nom de service de la stack Authentik concernée — visible via `docker ps` sur cette stack) plutôt que l'URL publique, pour éviter un aller-retour inutile par Traefik. L'URL publique fonctionne aussi.
 
 Pour générer `POSTGRES_PASSWORD` et `SESSION_SECRET` (valeurs aléatoires, à ne jamais commiter) :
 
@@ -48,7 +48,7 @@ node -e "console.log(require('crypto').randomBytes(24).toString('base64'))"   # 
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"      # SESSION_SECRET
 ```
 
-Collez chaque valeur générée dans `.env` à la place de `changeme` / `une-longue-chaine-aleatoire`.
+Chaque valeur générée remplace `changeme` / `une-longue-chaine-aleatoire` dans `.env`.
 
 Si le réseau `traefik-proxy` n'existe pas encore (il devrait déjà exister si Authentik tourne dessus) :
 
@@ -111,17 +111,17 @@ Pas de port publié sur l'hôte : Traefik parle directement au conteneur `octane
 
 ## Intégration Traefik
 
-Le `docker-compose.yml` ci-dessus utilise déjà les **labels Docker** (option recommandée). Deux cas selon la configuration de votre Traefik :
+Le `docker-compose.yml` ci-dessus utilise déjà les **labels Docker** (option recommandée). Deux cas selon la configuration de Traefik utilisée :
 
 ### Option A — provider Docker (labels), déjà en place
 
-Si Traefik tourne avec le provider Docker activé (`--providers.docker=true` et accès au socket Docker) et surveille le réseau `traefik-proxy`, rien à faire de plus : les labels du service `app` suffisent. Vérifiez juste que :
+Si Traefik tourne avec le provider Docker activé (`--providers.docker=true` et accès au socket Docker) et surveille le réseau `traefik-proxy`, rien à faire de plus : les labels du service `app` suffisent. Vérifier que :
 - Traefik est bien attaché au réseau `traefik-proxy`,
-- l'entrypoint `websecure` et le `certResolver` `myresolver` correspondent aux noms utilisés dans votre configuration Traefik (adaptez les labels sinon).
+- l'entrypoint `websecure` et le `certResolver` `myresolver` correspondent aux noms utilisés dans la configuration Traefik en place (adapter les labels sinon).
 
 ### Option B — provider fichier (dynamic config)
 
-Si votre Traefik est plutôt piloté par des fichiers de configuration dynamique (comme votre exemple `guitar-scale`), retirez les `labels` du service `app` dans `docker-compose.yml` et ajoutez ce fichier à votre dossier de conf dynamique Traefik (ex: `dynamic/octane.yml`) :
+Si Traefik est plutôt piloté par des fichiers de configuration dynamique, retirer les `labels` du service `app` dans `docker-compose.yml` et ajouter ce fichier au dossier de conf dynamique Traefik (ex: `dynamic/octane.yml`) :
 
 ```yaml
 http:
@@ -241,7 +241,7 @@ erDiagram
 | `/suggestions.html` | Tous | Proposer un morceau (liens YouTube et Spotify + note libre), voter approuver/rejeter avec commentaire (attribué nominativement), ajouter une suggestion au répertoire |
 | `/setlist.html` | Tous (lecture et écriture) | Setlist du prochain concert : choix des morceaux du répertoire, ordre, notes, section rappel, lien "Écouter la setlist sur YouTube" |
 | `/history.html`, `/history-detail.html` | Tous (lecture et écriture) | Historique des concerts passés, modifiable (date, morceaux, ordre, rappel) et supprimable, avec le même lien playlist YouTube. `/history.html` propose deux vues : chronologique (par défaut, tous les concerts détaillés avec YouTube embarqué par morceau, du plus récent au plus ancien) et réduite (liste compacte, comme avant) |
-| `/profile.html` | Chacun voit le sien | Profil issu d'Authentik (nom, avatar, groupes) + votre activité (morceaux ajoutés, suggestions, votes) |
+| `/profile.html` | Chacun voit le sien | Profil issu d'Authentik (nom, avatar, groupes) + activité personnelle (morceaux ajoutés, suggestions, votes) |
 | `/calendar.html` | Tous (lecture et écriture) | Disponibilités du groupe pour les 3 prochaines semaines (calendrier, filtres par personne, modale par jour) — [détails](#disponibilités-calendrier) |
 
 Le mode par défaut est la consultation ; les pages Répertoire, Setlist et Suggestions sont interactives pour toute personne connectée (chaque action reste attribuée nominativement via Authentik).
@@ -266,7 +266,7 @@ En sélectionnant une suggestion, l'app tente aussi de retrouver automatiquement
 | `YOUTUBE_API_KEY` | [Google Cloud Console](https://console.cloud.google.com/) → activer "YouTube Data API v3" → créer une clé API (quota gratuit largement suffisant pour un groupe) | Le champ lien YouTube reste vide, saisie manuelle |
 | `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | [Spotify for Developers](https://developer.spotify.com/dashboard) → créer une app → Client ID/Secret (flux "Client Credentials", pas de compte utilisateur impliqué) | Le champ lien Spotify reste vide, saisie manuelle |
 
-Si aucune des deux n'est configurée, l'autocomplete titre/artiste marche quand même — seuls les liens ne se remplissent pas tout seuls. Vous pouvez ajouter ces clés à tout moment dans `.env` sans changement de code, juste un redémarrage du conteneur `app`.
+Si aucune des deux n'est configurée, l'autocomplete titre/artiste marche quand même — seuls les liens ne se remplissent pas tout seuls. Ces clés peuvent être ajoutées à tout moment dans `.env` sans changement de code, juste un redémarrage du conteneur `app`.
 
 Si la recherche ne trouve rien (morceau trop obscur, faute de frappe...), rien ne bloque : titre, artiste et liens restent modifiables à la main comme avant.
 
@@ -304,14 +304,14 @@ flowchart LR
   ```
   X-Calendar-Webhook-Secret: <valeur de CALENDAR_WEBHOOK_SECRET>
   ```
-  Si vous reprenez un workflow n8n existant (depuis l'ancien `octane-calendar`), mettez à jour ses noeuds HTTP pour pointer vers `https://octane.dandrove.com/api/calendar/...` et ajouter ce header.
+  En cas de reprise d'un workflow n8n existant (depuis l'ancien `octane-calendar`), mettre à jour ses noeuds HTTP pour pointer vers `https://octane.dandrove.com/api/calendar/...` et ajouter ce header.
 
 ### Variables d'environnement
 
 | Variable | Description |
 |---|---|
 | `N8N_WEBHOOK_URL` | URL complète du webhook n8n (production, pas l'URL de test) — **optionnel** : sans elle, la consultation des disponibilités déjà connues fonctionne, seul le bouton "Actualiser" renvoie une erreur explicite |
-| `N8N_WEBHOOK_USER` / `N8N_WEBHOOK_PASS` | Identifiants HTTP basic-auth configurés sur le noeud webhook n8n, si vous en avez mis un |
+| `N8N_WEBHOOK_USER` / `N8N_WEBHOOK_PASS` | Identifiants HTTP basic-auth configurés sur le noeud webhook n8n, si le webhook en utilise |
 | `CALENDAR_WEBHOOK_SECRET` | **Requis** — générer avec `openssl rand -hex 32`, à renseigner aussi côté n8n (header `X-Calendar-Webhook-Secret`) |
 
 ### Personnes suivies
@@ -326,12 +326,12 @@ La liste des personnes (et leur couleur) est amorcée en base par la migration `
 
 ## Configuration Authentik
 
-1. Créer un **Provider** OAuth2/OIDC dans Authentik, avec comme redirect URI la valeur que vous mettrez dans `OIDC_REDIRECT_URI` (ex: `https://octane.dandrove.com/auth/callback`).
+1. Créer un **Provider** OAuth2/OIDC dans Authentik, avec comme redirect URI la valeur à utiliser dans `OIDC_REDIRECT_URI` (ex: `https://octane.dandrove.com/auth/callback`).
 2. Créer une **Application** Authentik pointant vers ce provider.
 3. S'assurer qu'un **scope mapping** expose un claim `groups` dans l'ID token (Authentik a un mapping `groups` intégré dans les versions récentes, sinon créer un mapping personnalisé renvoyant `request.user.ak_groups.all()`).
 4. Créer un **groupe** Authentik (ex: `octane-admins`) et y ajouter les membres qui doivent être admins de l'application.
 5. Noter le Client ID / Client Secret du provider.
-6. Optionnel — pour afficher l'avatar sur la page profil (`/profile.html`) : le scope `profile` doit renvoyer un claim `picture`. Si votre version d'Authentik ne le fait pas nativement, ajoutez un scope mapping personnalisé renvoyant l'URL de l'avatar (ex: `request.user.avatar`). Sans ce claim, un avatar généré à partir des initiales est affiché à la place — aucune configuration n'est requise pour ce cas.
+6. Optionnel — pour afficher l'avatar sur la page profil (`/profile.html`) : le scope `profile` doit renvoyer un claim `picture`. Si la version d'Authentik utilisée ne le fait pas nativement, ajouter un scope mapping personnalisé renvoyant l'URL de l'avatar (ex: `request.user.avatar`). Sans ce claim, un avatar généré à partir des initiales est affiché à la place — aucune configuration n'est requise pour ce cas.
 
 ## Variables d'environnement (référence complète)
 
@@ -390,73 +390,14 @@ npm run migrate
 npm start
 ```
 
-Ouvrir `http://localhost:3000` : vous serez redirigé vers `/auth/login`, qui affiche un formulaire pour choisir un nom (et cocher "Compte admin" si besoin) au lieu de passer par Authentik. Chaque nom saisi crée un utilisateur distinct et persistant en base — pratique pour tester le vote sur les suggestions avec plusieurs "personnes" (ouvrez un autre navigateur ou une fenêtre de navigation privée pour vous connecter sous un second nom).
+Ouvrir `http://localhost:3000` redirige vers `/auth/login`, qui affiche un formulaire pour choisir un nom (et cocher "Compte admin" si besoin) au lieu de passer par Authentik. Chaque nom saisi crée un utilisateur distinct et persistant en base — pratique pour tester le vote sur les suggestions avec plusieurs "personnes" (ouvrir un autre navigateur ou une fenêtre de navigation privée pour se connecter sous un second nom).
 
-Une fois satisfait, repassez `DEV_BYPASS_AUTH=false` et configurez les variables `AUTHENTIK_*`/`OIDC_*` avant de déployer avec `docker-compose.yml` (celui avec le réseau Authentik).
-
-## CI/CD et mises à jour
-
-Le workflow `.github/workflows/ci.yml` se déclenche **uniquement sur push vers `main`** :
-
-```mermaid
-flowchart LR
-    Push["push sur main"] --> Test["Job test\nnpm ci + npm test"]
-    Test -- succès --> Build["Job build-and-push\ndocker build (app seule)"]
-    Build --> Push2["push vers ghcr.io\n:latest"]
-    Push2 -. "détecte le nouveau digest" .-> Watchtower["Watchtower (sur votre serveur)"]
-    Watchtower --> Redeploy["redéploie le conteneur app"]
-```
-
-1. **Job `test`** : installe les dépendances et lance `npm test` (tests unitaires avec le test runner natif de Node — `node --test`, aucune dépendance de test supplémentaire). Actuellement couvre la validation des liens YouTube/Spotify (`test/*.test.js`).
-2. **Job `build-and-push`** (uniquement si les tests passent) : construit **uniquement l'image de l'app** (le `Dockerfile` ne contient que Node/Express, jamais Postgres) et la publie sur `ghcr.io/nfonteyne/octane-website:latest`.
-
-Sur votre serveur, `docker-compose.yml` référence cette image directement (`image: ghcr.io/nfonteyne/octane-website:latest`) au lieu de la construire — Watchtower peut donc la surveiller et la mettre à jour automatiquement dès qu'un nouveau push sur `main` produit une nouvelle image.
-
-Si le repo GitHub est privé, le package `ghcr.io` publié le sera aussi : sur le serveur, faites une fois :
-
-```bash
-echo "$GITHUB_TOKEN" | docker login ghcr.io -u nfonteyne --password-stdin
-```
-
-avec un token GitHub (classic PAT ou fine-grained) ayant le scope `read:packages`.
-
-Pour lancer les tests en local :
-
-```bash
-npm test
-```
-
-## Sauvegarde de la base de données
-
-Aucune sauvegarde automatique n'est intégrée à l'application — c'est volontaire, pour que vous gardiez la main sur votre solution de backup externe. Les données Postgres vivent entièrement dans le volume Docker nommé **`pgdata`** (déclaré dans `docker-compose.yml`, monté sur `/var/lib/postgresql/data` du service `postgres`).
-
-Repérer le nom réel du volume (préfixé par le nom du projet Compose) :
-
-```bash
-docker volume ls | grep pgdata
-docker volume inspect <nom_du_volume>   # donne le Mountpoint sur le disque de l'hôte
-```
-
-Deux façons de sauvegarder depuis l'extérieur :
-
-- **Backup logique (`pg_dump`)**, recommandé, portable entre versions de Postgres :
-  ```bash
-  docker compose exec postgres pg_dump -U octane -d octane -F c -f /tmp/octane.dump
-  docker compose cp postgres:/tmp/octane.dump ./octane_$(date +%Y%m%d).dump
-  ```
-- **Backup brut du volume**, via le `Mountpoint` renvoyé par `docker volume inspect`, ou avec un conteneur utilitaire :
-  ```bash
-  docker run --rm -v <nom_du_volume>:/data -v "$(pwd)/backups":/backup alpine \
-    tar czf /backup/pgdata_$(date +%Y%m%d).tar.gz -C /data .
-  ```
-
-Branchez l'une de ces commandes sur votre outil de backup externe habituel (cron, Veeam, Borg, etc.).
+Avant un déploiement avec `docker-compose.yml` (celui avec le réseau Authentik), repasser `DEV_BYPASS_AUTH=false` et configurer les variables `AUTHENTIK_*`/`OIDC_*`.
 
 ## Structure du projet
 
 ```
 octane-website/
-├── .github/workflows/ci.yml   # tests + build/push de l'image Docker sur push main
 ├── Dockerfile, docker-compose.yml, docker-compose.dev.yml
 ├── test/               # tests unitaires (node --test)
 ├── src/
