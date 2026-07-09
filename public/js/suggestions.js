@@ -320,7 +320,7 @@ async function onSuggestionCandidateSelected(candidate) {
 // ---------- Swipe ("Vote rapide") view ----------
 
 const VIEW_STORAGE_KEY = 'octane-suggestions-view';
-let currentView = localStorage.getItem(VIEW_STORAGE_KEY) === 'swipe' ? 'swipe' : 'list';
+let currentView = localStorage.getItem(VIEW_STORAGE_KEY) === 'list' ? 'list' : 'swipe';
 let swipeQueue = [];
 let dragState = null;
 
@@ -390,14 +390,21 @@ function renderSwipeStack() {
 function bindSwipeCardEvents(card, suggestion) {
   card.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'mouse') return;
-    dragState = { id: card.dataset.id, startX: e.clientX, startY: e.clientY, dx: 0, dy: 0 };
+    dragState = { id: card.dataset.id, startX: e.clientX, startY: e.clientY, dx: 0, dy: 0, raf: null };
+    card.style.transition = 'none';
     card.setPointerCapture(e.pointerId);
   });
   card.addEventListener('pointermove', (e) => {
     if (!dragState || dragState.id !== card.dataset.id) return;
     dragState.dx = e.clientX - dragState.startX;
     dragState.dy = e.clientY - dragState.startY;
-    applyDragTransform(card, dragState.dx, dragState.dy);
+    if (dragState.raf) return;
+    dragState.raf = requestAnimationFrame(() => {
+      if (dragState) {
+        applyDragTransform(card, dragState.dx, dragState.dy);
+        dragState.raf = null;
+      }
+    });
   });
   const endDrag = (e) => {
     if (!dragState || dragState.id !== card.dataset.id) return;
