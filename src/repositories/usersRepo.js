@@ -32,4 +32,19 @@ async function getActivityStats(userId) {
   };
 }
 
-module.exports = { findById, upsertFromClaims, getActivityStats };
+async function findAllWithActivity() {
+  const { rows } = await pool.query(`
+    SELECT u.id, u.name, u.avatar_url, u.is_admin, u.created_at, u.updated_at,
+           COALESCE(s.count, 0) AS songs_added,
+           COALESCE(sg.count, 0) AS suggestions_proposed,
+           COALESCE(v.count, 0) AS votes_cast
+    FROM users u
+    LEFT JOIN (SELECT added_by, COUNT(*)::int AS count FROM songs GROUP BY added_by) s ON s.added_by = u.id
+    LEFT JOIN (SELECT suggested_by, COUNT(*)::int AS count FROM suggestions GROUP BY suggested_by) sg ON sg.suggested_by = u.id
+    LEFT JOIN (SELECT user_id, COUNT(*)::int AS count FROM suggestion_votes GROUP BY user_id) v ON v.user_id = u.id
+    ORDER BY (COALESCE(s.count, 0) + COALESCE(sg.count, 0) + COALESCE(v.count, 0)) DESC, u.name
+  `);
+  return rows;
+}
+
+module.exports = { findById, upsertFromClaims, getActivityStats, findAllWithActivity };

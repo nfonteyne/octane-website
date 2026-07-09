@@ -75,6 +75,16 @@ async function removeTutorial(songId, tutorialId) {
   ]);
 }
 
+async function getStats() {
+  const { rows } = await pool.query(`
+    SELECT COUNT(*)::int AS total_songs,
+           COUNT(DISTINCT NULLIF(artist, ''))::int AS distinct_artists,
+           (SELECT COUNT(*)::int FROM song_tutorials) AS tutorials_added
+    FROM songs
+  `);
+  return rows[0];
+}
+
 module.exports = {
   findAll,
   findById,
@@ -84,4 +94,5 @@ module.exports = {
   findTutorials,
   addTutorial,
   removeTutorial,
+  getStats,
 };

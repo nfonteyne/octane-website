@@ -130,6 +130,26 @@ async function removeSong(setlistId, setlistSongId) {
   ]);
 }
 
+async function getStats() {
+  const { rows } = await pool.query(`
+    SELECT
+      COUNT(*) FILTER (WHERE concert_date < CURRENT_DATE)::int AS past_concerts,
+      COUNT(*) FILTER (WHERE concert_date >= CURRENT_DATE)::int AS upcoming_concerts,
+      COALESCE((
+        SELECT AVG(song_count)
+        FROM (
+          SELECT sl.id, COUNT(ss.id) AS song_count
+          FROM setlists sl
+          LEFT JOIN setlist_songs ss ON ss.setlist_id = sl.id
+          WHERE sl.concert_date < CURRENT_DATE
+          GROUP BY sl.id
+        ) t
+      ), 0)::numeric(10,1) AS avg_songs_per_concert
+    FROM setlists
+  `);
+  return rows[0];
+}
+
 module.exports = {
   findNext,
   findHistory,
@@ -142,4 +162,5 @@ module.exports = {
   replaceSongs,
   addSong,
   removeSong,
+  getStats,
 };

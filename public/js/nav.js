@@ -31,6 +31,7 @@ async function initNav(activePage) {
         <a href="/setlist.html" class="${activePage === 'setlist' ? 'active' : ''}">Prochain concert</a>
         <a href="/calendar.html" class="${activePage === 'calendar' ? 'active' : ''}">Disponibilités</a>
         <a href="/history.html" class="${activePage === 'history' ? 'active' : ''}">Historique</a>
+        ${me.isAdmin ? `<a href="/admin.html" class="${activePage === 'admin' ? 'active' : ''}">Administration</a>` : ''}
       </div>
       <div class="nav-user">
         ${me.authentikAccountUrl ? `<a href="${escapeHtml(me.authentikAccountUrl)}" target="_blank" rel="noopener" title="Gérer mon compte Authentik (mot de passe, etc.)">Mon compte</a>` : ''}

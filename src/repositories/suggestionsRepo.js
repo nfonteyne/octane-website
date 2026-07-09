@@ -84,6 +84,18 @@ async function removeVote(suggestionId, userId) {
   ]);
 }
 
+async function getStats() {
+  const { rows } = await pool.query(`
+    SELECT COUNT(*)::int AS total,
+           COUNT(*) FILTER (WHERE status = 'pending')::int AS pending,
+           COUNT(*) FILTER (WHERE status = 'approved')::int AS approved,
+           COUNT(*) FILTER (WHERE status = 'rejected')::int AS rejected,
+           (SELECT COUNT(*)::int FROM suggestion_votes) AS total_votes
+    FROM suggestions
+  `);
+  return rows[0];
+}
+
 async function promoteToSong(suggestionId, addedBy) {
   const client = await pool.connect();
   try {
@@ -134,4 +146,5 @@ module.exports = {
   upsertVote,
   removeVote,
   promoteToSong,
+  getStats,
 };
