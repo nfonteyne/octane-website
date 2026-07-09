@@ -313,7 +313,7 @@ La garantie de confidentialité ne repose donc pas sur le fournisseur, mais sur 
 
 ### Personnes suivies
 
-La liste des personnes (et leur couleur) est amorcée en base par la migration `006_calendar_seed_people.sql` (Nathan, Raphaël, Yann, Jules, AK). De nouvelles personnes peuvent être ajoutées directement en base ; leurs flux de calendrier se gèrent ensuite depuis `/admin.html`.
+Les personnes affichées sur le calendrier ne sont pas une liste séparée à maintenir : ce sont directement les utilisateurs de l'application (comptes Authentik) ayant au moins un calendrier enregistré. Depuis `/admin.html`, section "Calendriers des membres", un admin voit tous les utilisateurs et peut attacher un ou plusieurs flux ICS à n'importe lequel d'entre eux — dès qu'un utilisateur a au moins un flux, il apparaît automatiquement sur `/calendar.html` (avec une couleur assignée automatiquement, sans configuration). Un utilisateur sans flux configuré n'apparaît pas.
 
 ## Prérequis
 

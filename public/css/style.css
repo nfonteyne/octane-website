@@ -180,21 +180,55 @@ nav#main-nav {
   margin-left: auto;
 }
 
-.nav-user > a {
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: 500;
+.nav-profile {
+  position: relative;
 }
 
-.nav-profile-link {
+.nav-profile-trigger {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--text) !important;
+  background: transparent;
+  border: none;
+  padding: 0.3rem 0.4rem;
+  border-radius: var(--radius-sm);
+  color: var(--text);
   font-weight: 500;
+  font-size: 0.88rem;
+  cursor: pointer;
 }
 
-.nav-profile-link span { color: var(--text); }
+.nav-profile-trigger:hover { background: var(--surface-alt); }
+
+.nav-profile-trigger span { color: var(--text); }
+
+.nav-profile-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  min-width: 180px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: 0.35rem;
+  flex-direction: column;
+  z-index: 30;
+}
+
+.nav-profile-dropdown.open { display: flex; }
+
+.nav-profile-dropdown a {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+}
+
+.nav-profile-dropdown a:hover { background: var(--surface-alt); }
 
 #theme-toggle {
   border-radius: 999px;
@@ -1068,16 +1102,31 @@ a.back-link:hover { color: var(--accent); }
 
   .nav-user {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 0;
     margin-left: 0;
   }
 
-  .nav-user > a,
-  .nav-user > .nav-profile-link {
+  .nav-profile-trigger {
     width: 100%;
     padding: 0.5rem 0;
     border-bottom: 1px solid var(--border);
+    border-radius: 0;
+  }
+
+  .nav-profile-dropdown {
+    position: static;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    min-width: 0;
+  }
+
+  .nav-profile-dropdown a {
+    width: 100%;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
   }
 
   main { padding: 1.25rem 0.9rem 3rem; }
@@ -1328,13 +1377,6 @@ a.back-link:hover { color: var(--accent); }
   flex-direction: column;
   align-items: stretch;
   gap: 0.6rem;
-}
-
-.calendar-color-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex: 0 0 auto;
 }
 
 .calendar-feeds {

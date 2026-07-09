@@ -1,39 +1,20 @@
 const pool = require('../db/pool');
 const { normalizeISO, slotDateParis, dayOfWeekParis } = require('../lib/calendarDates');
 
-const COLOR_PALETTE = [
-  '#4285f4', '#ea4335', '#fbbc05', '#34a853',
-  '#a142f4', '#24c1e0', '#ff6d00', '#795548',
-];
-
+// "People" on the calendar are just app users who have registered at least
+// one feed — calendar_active_people (a view, see migration 011) centralizes
+// that membership + a stable color per user, so this and getSlots() below
+// can't disagree with each other.
 async function getPeople() {
-  const { rows } = await pool.query('SELECT id, name, color FROM calendar_people ORDER BY id');
+  const { rows } = await pool.query('SELECT id, name, color FROM calendar_active_people ORDER BY id');
   return rows;
 }
 
-// Always called from within the ingestSlots transaction below (needs the
-// same client so the color-index count and the insert see a consistent view).
-async function upsertPerson(client, name) {
-  const existing = await client.query('SELECT id FROM calendar_people WHERE name = $1', [name]);
-  if (existing.rows[0]) return existing.rows[0].id;
-
-  const { rows: countRows } = await client.query('SELECT COUNT(*)::int AS count FROM calendar_people');
-  const color = COLOR_PALETTE[countRows[0].count % COLOR_PALETTE.length];
-
-  const { rows } = await client.query(
-    `INSERT INTO calendar_people (name, color) VALUES ($1, $2)
-     ON CONFLICT (name) DO UPDATE SET name = excluded.name
-     RETURNING id`,
-    [name, color]
-  );
-  return rows[0].id;
-}
-
 // Returns ingestion counts so callers can surface a diagnostic (e.g. "12
-// slots but 0 availability rows" points at a payload-shape mismatch from
-// n8n, since a slot with no matching calendar_availability rows is silently
-// excluded from getSlots() below — it would otherwise look like "nothing
-// happened" with no error anywhere.
+// slots but 0 availability rows" points at a payload-shape mismatch — a slot
+// with no matching calendar_availability rows is silently excluded from
+// getSlots() below, so it would otherwise look like "nothing happened" with
+// no error anywhere.
 async function ingestSlots(slots) {
   const client = await pool.connect();
   let availabilityRows = 0;
@@ -59,35 +40,27 @@ async function ingestSlots(slots) {
       );
       const slotId = slotRows[0].id;
 
-      // people may arrive as a JSON string from n8n's Set-node serialization.
-      let people = typeof slot.people === 'string' ? JSON.parse(slot.people) : slot.people || [];
-      if (!Array.isArray(people)) people = [];
-
+      const people = Array.isArray(slot.people) ? slot.people : [];
       if (people.length === 0) {
         slotsWithNoPeople += 1;
-        console.warn('[calendar] ingest: slot has no people entries', {
-          lower: slot.lower,
-          upper: slot.upper,
-          rawPeopleType: typeof slot.people,
-        });
+        console.warn('[calendar] ingest: slot has no people entries', { lower: slot.lower, upper: slot.upper });
       }
 
       for (const person of people) {
-        if (!person || !person.name) {
-          console.warn('[calendar] ingest: skipped a person entry with no "name" field', person);
+        if (!person || !person.userId) {
+          console.warn('[calendar] ingest: skipped a person entry with no "userId" field', person);
           continue;
         }
-        const personId = await upsertPerson(client, person.name);
         const isAvailable = !!person.available;
         if (isAvailable) availableTrueCount += 1;
         else availableFalseCount += 1;
         await client.query(
-          `INSERT INTO calendar_availability (slot_id, person_id, is_available, checked_at)
+          `INSERT INTO calendar_availability (slot_id, user_id, is_available, checked_at)
            VALUES ($1, $2, $3, now())
-           ON CONFLICT (slot_id, person_id) DO UPDATE SET
+           ON CONFLICT (slot_id, user_id) DO UPDATE SET
              is_available = excluded.is_available,
              checked_at = excluded.checked_at`,
-          [slotId, personId, isAvailable]
+          [slotId, person.userId, isAvailable]
         );
         availabilityRows += 1;
       }
@@ -132,7 +105,7 @@ async function getSlots({ minPeople = 0, personIds = null, weeks = 3 } = {}) {
                   ORDER BY p.id
                 )
          FROM calendar_availability sa2
-         JOIN calendar_people p ON p.id = sa2.person_id
+         JOIN calendar_active_people p ON p.id = sa2.user_id
          WHERE sa2.slot_id = ts.id
        ) AS people
      FROM calendar_slots ts
@@ -141,7 +114,7 @@ async function getSlots({ minPeople = 0, personIds = null, weeks = 3 } = {}) {
               COUNT(*) FILTER (WHERE is_available) AS available_count,
               COUNT(*) AS total_in_filter
        FROM calendar_availability
-       WHERE ($3::int[] IS NULL OR person_id = ANY($3::int[]))
+       WHERE ($3::int[] IS NULL OR user_id = ANY($3::int[]))
        GROUP BY slot_id
      ) filtered ON filtered.slot_id = ts.id
      WHERE ts.slot_date >= $1 AND ts.slot_date <= $2
@@ -158,33 +131,33 @@ async function getLastChecked() {
   return rows[0].ts;
 }
 
-// Every registered feed across every person, for the sync job — never
-// returned to non-admin API consumers (see getPeople() above, which omits
-// ics_url entirely).
+// Every registered feed across every user, for the sync job — never returned
+// to non-admin API consumers (see getPeople() above, which omits ics_url
+// entirely).
 async function findAllFeeds() {
   const { rows } = await pool.query(`
-    SELECT f.id, f.person_id, p.name AS person_name, f.label, f.ics_url
+    SELECT f.id, f.user_id, u.name AS user_name, f.label, f.ics_url
     FROM calendar_feeds f
-    JOIN calendar_people p ON p.id = f.person_id
-    ORDER BY f.person_id, f.id
+    JOIN users u ON u.id = f.user_id
+    ORDER BY f.user_id, f.id
   `);
   return rows;
 }
 
-async function findFeedsForPerson(personId) {
+async function findFeedsForUser(userId) {
   const { rows } = await pool.query(
-    'SELECT id, person_id, label, ics_url FROM calendar_feeds WHERE person_id = $1 ORDER BY id',
-    [personId]
+    'SELECT id, user_id, label, ics_url FROM calendar_feeds WHERE user_id = $1 ORDER BY id',
+    [userId]
   );
   return rows;
 }
 
-async function addFeed(personId, { label, icsUrl }) {
+async function addFeed(userId, { label, icsUrl }) {
   const { rows } = await pool.query(
-    `INSERT INTO calendar_feeds (person_id, label, ics_url)
+    `INSERT INTO calendar_feeds (user_id, label, ics_url)
      VALUES ($1, $2, $3)
-     RETURNING id, person_id, label, ics_url`,
-    [personId, label || null, icsUrl]
+     RETURNING id, user_id, label, ics_url`,
+    [userId, label || null, icsUrl]
   );
   return rows[0];
 }
@@ -193,19 +166,22 @@ async function removeFeed(feedId) {
   await pool.query('DELETE FROM calendar_feeds WHERE id = $1', [feedId]);
 }
 
-// Admin-only variant of getPeople(): includes each person's registered feeds
-// (label + ics_url) so an admin can review/edit them. The public getPeople()
-// above deliberately never exposes ics_url — it's a secret, effectively
-// granting calendar read access to whoever has it.
-async function getPeopleForAdmin() {
-  const people = await getPeople();
+// Every app user (not just ones already on the calendar) with their
+// registered feeds attached — lets an admin give someone their first feed,
+// not just manage existing entries. The public getPeople() above deliberately
+// never exposes ics_url — it's a secret, effectively granting calendar read
+// access to whoever has it.
+async function getUsersWithFeeds() {
+  const { rows: users } = await pool.query(
+    'SELECT id, name, avatar_url, is_admin FROM users ORDER BY name'
+  );
   const feeds = await findAllFeeds();
-  const feedsByPerson = new Map();
+  const feedsByUser = new Map();
   for (const feed of feeds) {
-    if (!feedsByPerson.has(feed.person_id)) feedsByPerson.set(feed.person_id, []);
-    feedsByPerson.get(feed.person_id).push({ id: feed.id, label: feed.label, icsUrl: feed.ics_url });
+    if (!feedsByUser.has(feed.user_id)) feedsByUser.set(feed.user_id, []);
+    feedsByUser.get(feed.user_id).push({ id: feed.id, label: feed.label, icsUrl: feed.ics_url });
   }
-  return people.map((p) => ({ ...p, feeds: feedsByPerson.get(p.id) || [] }));
+  return users.map((u) => ({ ...u, feeds: feedsByUser.get(u.id) || [] }));
 }
 
 // TIME columns come back from pg as 'HH:MM:SS' strings — split into numbers
@@ -248,10 +224,10 @@ module.exports = {
   getSlots,
   getLastChecked,
   findAllFeeds,
-  findFeedsForPerson,
+  findFeedsForUser,
   addFeed,
   removeFeed,
-  getPeopleForAdmin,
+  getUsersWithFeeds,
   getSlotSettings,
   updateSlotSettings,
 };

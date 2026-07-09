@@ -1,5 +1,6 @@
 const express = require('express');
 const calendarRepo = require('../repositories/calendarRepo');
+const usersRepo = require('../repositories/usersRepo');
 const workflowState = require('../lib/calendarWorkflowState');
 const calendarSync = require('../services/calendarSync');
 const { requireAdmin } = require('../auth/middleware');
@@ -78,7 +79,16 @@ router.get(
   '/people/admin',
   requireAdmin,
   asyncHandler(async (req, res) => {
-    res.json(await calendarRepo.getPeopleForAdmin());
+    const users = await calendarRepo.getUsersWithFeeds();
+    res.json(
+      users.map((u) => ({
+        id: u.id,
+        name: u.name,
+        avatarUrl: u.avatar_url,
+        isAdmin: u.is_admin,
+        feeds: u.feeds,
+      }))
+    );
   })
 );
 
@@ -90,11 +100,16 @@ router.post(
     if (!icsUrl || !icsUrl.trim()) {
       return res.status(400).json({ error: 'ics_url_required' });
     }
-    const feed = await calendarRepo.addFeed(parseInt(req.params.id, 10), {
+    const userId = parseInt(req.params.id, 10);
+    const user = await usersRepo.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'user_not_found' });
+    }
+    const feed = await calendarRepo.addFeed(userId, {
       label: label ? label.trim() : null,
       icsUrl: icsUrl.trim(),
     });
-    res.status(201).json({ id: feed.id, personId: feed.person_id, label: feed.label, icsUrl: feed.ics_url });
+    res.status(201).json({ id: feed.id, userId: feed.user_id, label: feed.label, icsUrl: feed.ics_url });
   })
 );
 

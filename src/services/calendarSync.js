@@ -73,24 +73,24 @@ function dateOnlyToParisSpan(dateOnly) {
 async function syncAvailability() {
   const [feeds, slotConfig] = await Promise.all([calendarRepo.findAllFeeds(), calendarRepo.getSlotSettings()]);
 
-  const byPerson = new Map();
+  const byUser = new Map();
   for (const feed of feeds) {
-    if (!byPerson.has(feed.person_id)) byPerson.set(feed.person_id, { name: feed.person_name });
+    if (!byUser.has(feed.user_id)) byUser.set(feed.user_id, { name: feed.user_name });
   }
 
   const results = await Promise.allSettled(feeds.map((feed) => fetchBusyIntervals(feed.ics_url)));
 
-  const intervalsByPerson = new Map();
+  const intervalsByUser = new Map();
   let failedFeeds = 0;
   results.forEach((result, i) => {
     const feed = feeds[i];
     if (result.status === 'rejected') {
       failedFeeds += 1;
-      console.warn(`[calendar] failed to fetch feed id=${feed.id} (person id=${feed.person_id}): ${result.reason.message}`);
+      console.warn(`[calendar] failed to fetch feed id=${feed.id} (user id=${feed.user_id}): ${result.reason.message}`);
       return;
     }
-    const existing = intervalsByPerson.get(feed.person_id) || [];
-    intervalsByPerson.set(feed.person_id, existing.concat(result.value));
+    const existing = intervalsByUser.get(feed.user_id) || [];
+    intervalsByUser.set(feed.user_id, existing.concat(result.value));
   });
 
   const slots = generateSlots(3, slotConfig);
@@ -100,10 +100,10 @@ async function syncAvailability() {
     // shown on /calendar.html, stays exactly what the admin configured.
     const { lower: checkLower, upper: checkUpper } = widenWindow(slot.lower, slot.upper, slotConfig.marginMinutes);
     const people = [];
-    for (const [personId, info] of byPerson) {
-      if (!intervalsByPerson.has(personId)) continue; // every feed for this person failed this run
-      const busy = isBusyDuring(intervalsByPerson.get(personId), checkLower, checkUpper);
-      people.push({ name: info.name, available: !busy });
+    for (const [userId] of byUser) {
+      if (!intervalsByUser.has(userId)) continue; // every feed for this user failed this run
+      const busy = isBusyDuring(intervalsByUser.get(userId), checkLower, checkUpper);
+      people.push({ userId, available: !busy });
     }
     return { lower: slot.lower.toISOString(), upper: slot.upper.toISOString(), people };
   });

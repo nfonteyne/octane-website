@@ -177,14 +177,14 @@ function buildFilters() {
     const btn = document.getElementById('btn-refresh');
     btn.disabled = true;
     btn.textContent = 'Actualisation…';
-    showToast('Déclenchement du workflow n8n…');
+    showToast('Synchronisation des calendriers…');
     try {
       await api.post('/api/calendar/refresh', {});
-      showToast('Workflow en cours — en attente des résultats…');
+      showToast('Synchronisation en cours — en attente des résultats…');
       pollWorkflowStatus(btn);
     } catch (err) {
-      const message = err.message === 'n8n_not_configured'
-        ? "L'actualisation automatique n'est pas configurée (n8n)."
+      const message = err.message === 'no_feeds_configured'
+        ? "Aucun calendrier n'est configuré — voir la page Administration."
         : err.message;
       showToast(message, true);
       resetRefreshButton(btn);

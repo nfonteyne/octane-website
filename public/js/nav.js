@@ -34,12 +34,16 @@ async function initNav(activePage) {
         ${me.isAdmin ? `<a href="/admin.html" class="${activePage === 'admin' ? 'active' : ''}">Administration</a>` : ''}
       </div>
       <div class="nav-user">
-        ${me.authentikAccountUrl ? `<a href="${escapeHtml(me.authentikAccountUrl)}" target="_blank" rel="noopener" title="Gérer mon compte Authentik (mot de passe, etc.)">Mon compte</a>` : ''}
-        <a class="nav-profile-link" href="/profile.html">
-          ${avatarHtml(me, 'avatar-sm')}
-          <span>${escapeHtml(me.name)}${me.isAdmin ? ' <span class="badge">admin</span>' : ''}</span>
-        </a>
-        <a href="/auth/logout">Se déconnecter</a>
+        <div class="nav-profile" id="nav-profile">
+          <button type="button" class="nav-profile-trigger" id="nav-profile-trigger" aria-haspopup="true" aria-expanded="false">
+            ${avatarHtml(me, 'avatar-sm')}
+            <span>${escapeHtml(me.name)}${me.isAdmin ? ' <span class="badge">admin</span>' : ''}</span>
+          </button>
+          <div class="nav-profile-dropdown" id="nav-profile-dropdown">
+            <a href="/profile.html">Voir profil</a>
+            <a href="/auth/logout">Se déconnecter</a>
+          </div>
+        </div>
       </div>
     </div>
     <div class="nav-controls">
@@ -52,6 +56,24 @@ async function initNav(activePage) {
   const menu = document.getElementById('nav-menu');
   toggle.addEventListener('click', () => menu.classList.toggle('open'));
   menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => menu.classList.remove('open')));
+
+  const profileTrigger = document.getElementById('nav-profile-trigger');
+  const profileDropdown = document.getElementById('nav-profile-dropdown');
+  function closeProfileDropdown() {
+    profileDropdown.classList.remove('open');
+    profileTrigger.setAttribute('aria-expanded', 'false');
+  }
+  profileTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = profileDropdown.classList.toggle('open');
+    profileTrigger.setAttribute('aria-expanded', String(isOpen));
+  });
+  document.addEventListener('click', (e) => {
+    if (!document.getElementById('nav-profile').contains(e.target)) closeProfileDropdown();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeProfileDropdown();
+  });
 
   updateThemeToggleIcon();
   document.getElementById('theme-toggle').addEventListener('click', () => {

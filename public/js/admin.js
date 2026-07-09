@@ -56,16 +56,16 @@ function feedRowTemplate(feed) {
   `;
 }
 
-function calendarPersonRowTemplate(person) {
+function calendarUserRowTemplate(user) {
   return `
-    <div class="admin-user-row calendar-person-row" data-person-id="${person.id}">
+    <div class="admin-user-row calendar-person-row" data-user-id="${user.id}">
       <div class="admin-user-identity">
-        <span class="calendar-color-dot" style="background:${escapeHtml(person.color)}"></span>
-        <div class="card-title">${escapeHtml(person.name)}</div>
+        ${avatarHtml(user, 'avatar-sm')}
+        <div class="card-title">${escapeHtml(user.name)}${user.isAdmin ? ' <span class="badge">admin</span>' : ''}</div>
       </div>
       <div class="calendar-feeds">
-        ${person.feeds.length ? person.feeds.map(feedRowTemplate).join('') : '<p class="empty">Aucun calendrier configuré.</p>'}
-        <form class="inline-form add-feed-form" data-person-id="${person.id}">
+        ${user.feeds.length ? user.feeds.map(feedRowTemplate).join('') : '<p class="empty">Aucun calendrier configuré.</p>'}
+        <form class="inline-form add-feed-form" data-user-id="${user.id}">
           <input name="label" placeholder="Libellé (optionnel)">
           <input name="icsUrl" type="url" placeholder="URL du calendrier (.ics)" required>
           <button type="submit" class="secondary icon-btn">+ Ajouter</button>
@@ -75,29 +75,29 @@ function calendarPersonRowTemplate(person) {
   `;
 }
 
-async function loadCalendarPeople() {
-  const people = await api.get('/api/calendar/people/admin');
+async function loadCalendarUsers() {
+  const users = await api.get('/api/calendar/people/admin');
   const container = document.getElementById('calendar-people-list');
-  container.innerHTML = people.length
-    ? people.map(calendarPersonRowTemplate).join('')
-    : '<p class="empty">Aucune personne suivie pour le moment.</p>';
+  container.innerHTML = users.length
+    ? users.map(calendarUserRowTemplate).join('')
+    : '<p class="empty">Aucun utilisateur pour le moment.</p>';
 
   container.querySelectorAll('.add-feed-form').forEach((form) => {
-    form.addEventListener('submit', (e) => onAddFeed(e, parseInt(form.dataset.personId, 10)));
+    form.addEventListener('submit', (e) => onAddFeed(e, parseInt(form.dataset.userId, 10)));
   });
   container.querySelectorAll('.remove-feed-btn').forEach((btn) => {
     btn.addEventListener('click', () => onRemoveFeed(parseInt(btn.dataset.feedId, 10)));
   });
 }
 
-async function onAddFeed(e, personId) {
+async function onAddFeed(e, userId) {
   e.preventDefault();
   const form = e.target;
   const label = form.label.value.trim();
   const icsUrl = form.icsUrl.value.trim();
   try {
-    await api.post(`/api/calendar/people/${personId}/feeds`, { label, icsUrl });
-    await loadCalendarPeople();
+    await api.post(`/api/calendar/people/${userId}/feeds`, { label, icsUrl });
+    await loadCalendarUsers();
   } catch (err) {
     showError(err.message);
   }
@@ -106,7 +106,7 @@ async function onAddFeed(e, personId) {
 async function onRemoveFeed(feedId) {
   try {
     await api.del(`/api/calendar/feeds/${feedId}`);
-    await loadCalendarPeople();
+    await loadCalendarUsers();
   } catch (err) {
     showError(err.message);
   }
@@ -197,9 +197,10 @@ async function onSaveSlotSettings(e) {
 
       <h2>Calendriers des membres</h2>
       <p class="note">
-        Chaque personne peut avoir plusieurs calendriers (Google, Outlook, Apple...). L'application ne
-        conserve jamais le contenu de ces calendriers — seul un statut disponible/occupé par créneau est
-        déduit et enregistré.
+        Chaque utilisateur de l'application peut avoir plusieurs calendriers (Google, Outlook, Apple...).
+        Seuls les utilisateurs avec au moins un calendrier configuré apparaissent sur `/calendar.html`.
+        L'application ne conserve jamais le contenu de ces calendriers — seul un statut disponible/occupé
+        par créneau est déduit et enregistré.
       </p>
       <div class="panel admin-user-list" id="calendar-people-list">
         <p class="empty">Chargement…</p>
@@ -207,7 +208,7 @@ async function onSaveSlotSettings(e) {
     `;
     document.getElementById('slot-settings-form').addEventListener('submit', onSaveSlotSettings);
     await loadSlotSettingsForm();
-    await loadCalendarPeople();
+    await loadCalendarUsers();
   } catch (err) {
     showError(err.message);
   }
