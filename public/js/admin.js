@@ -35,6 +35,112 @@ function adminUserRowTemplate(u) {
   `;
 }
 
+// Shown for a registered feed instead of its full URL — an admin can already
+// see the real value via the "add calendar" flow when they set it, but the
+// list view doesn't need to keep re-displaying the plaintext on every load.
+function maskIcsUrl(url) {
+  try {
+    const u = new URL(url);
+    return `${u.hostname}/••••`;
+  } catch {
+    return '••••';
+  }
+}
+
+function feedRowTemplate(feed) {
+  return `
+    <div class="feed-row" data-feed-id="${feed.id}">
+      <span class="feed-label">${feed.label ? `${escapeHtml(feed.label)} — ` : ''}${escapeHtml(maskIcsUrl(feed.icsUrl))}</span>
+      <button type="button" class="secondary icon-btn remove-feed-btn" data-feed-id="${feed.id}">Supprimer</button>
+    </div>
+  `;
+}
+
+function calendarPersonRowTemplate(person) {
+  return `
+    <div class="admin-user-row calendar-person-row" data-person-id="${person.id}">
+      <div class="admin-user-identity">
+        <span class="calendar-color-dot" style="background:${escapeHtml(person.color)}"></span>
+        <div class="card-title">${escapeHtml(person.name)}</div>
+      </div>
+      <div class="calendar-feeds">
+        ${person.feeds.length ? person.feeds.map(feedRowTemplate).join('') : '<p class="empty">Aucun calendrier configuré.</p>'}
+        <form class="inline-form add-feed-form" data-person-id="${person.id}">
+          <input name="label" placeholder="Libellé (optionnel)">
+          <input name="icsUrl" type="url" placeholder="URL du calendrier (.ics)" required>
+          <button type="submit" class="secondary icon-btn">+ Ajouter</button>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+async function loadCalendarPeople() {
+  const people = await api.get('/api/calendar/people/admin');
+  const container = document.getElementById('calendar-people-list');
+  container.innerHTML = people.length
+    ? people.map(calendarPersonRowTemplate).join('')
+    : '<p class="empty">Aucune personne suivie pour le moment.</p>';
+
+  container.querySelectorAll('.add-feed-form').forEach((form) => {
+    form.addEventListener('submit', (e) => onAddFeed(e, parseInt(form.dataset.personId, 10)));
+  });
+  container.querySelectorAll('.remove-feed-btn').forEach((btn) => {
+    btn.addEventListener('click', () => onRemoveFeed(parseInt(btn.dataset.feedId, 10)));
+  });
+}
+
+async function onAddFeed(e, personId) {
+  e.preventDefault();
+  const form = e.target;
+  const label = form.label.value.trim();
+  const icsUrl = form.icsUrl.value.trim();
+  try {
+    await api.post(`/api/calendar/people/${personId}/feeds`, { label, icsUrl });
+    await loadCalendarPeople();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+async function onRemoveFeed(feedId) {
+  try {
+    await api.del(`/api/calendar/feeds/${feedId}`);
+    await loadCalendarPeople();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+async function loadSlotSettingsForm() {
+  const settings = await api.get('/api/calendar/settings');
+  const form = document.getElementById('slot-settings-form');
+  form.weekdayStart.value = settings.weekdayStart;
+  form.weekdayEnd.value = settings.weekdayEnd;
+  form.weekendStart.value = settings.weekendStart;
+  form.weekendEnd.value = settings.weekendEnd;
+  form.marginMinutes.value = settings.marginMinutes;
+}
+
+async function onSaveSlotSettings(e) {
+  e.preventDefault();
+  const form = e.target;
+  const statusEl = document.getElementById('slot-settings-status');
+  statusEl.textContent = '';
+  try {
+    await api.patch('/api/calendar/settings', {
+      weekdayStart: form.weekdayStart.value,
+      weekdayEnd: form.weekdayEnd.value,
+      weekendStart: form.weekendStart.value,
+      weekendEnd: form.weekendEnd.value,
+      marginMinutes: parseInt(form.marginMinutes.value, 10),
+    });
+    statusEl.textContent = 'Horaires enregistrés.';
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
 (async function init() {
   const me = await initNav('admin');
   if (!me.isAdmin) {
@@ -68,7 +174,40 @@ function adminUserRowTemplate(u) {
       <div class="panel admin-user-list">
         ${stats.users.map(adminUserRowTemplate).join('')}
       </div>
+
+      <h2>Créneaux de répétition</h2>
+      <p class="note">Horaires utilisés pour calculer les disponibilités sur `/calendar.html`.</p>
+      <div class="panel">
+        <form id="slot-settings-form" class="stacked-form">
+          <label>Semaine — début <input type="time" name="weekdayStart" required></label>
+          <label>Semaine — fin <input type="time" name="weekdayEnd" required></label>
+          <label>Week-end — début <input type="time" name="weekendStart" required></label>
+          <label>Week-end — fin <input type="time" name="weekendEnd" required></label>
+          <label>Marge de transport (minutes)
+            <input type="number" name="marginMinutes" min="0" max="180" step="5" required>
+          </label>
+          <p class="note">
+            La marge élargit uniquement la vérification de disponibilité (avant/après le créneau),
+            pour tenir compte du temps de trajet entre deux évènements — le créneau affiché ne change pas.
+          </p>
+          <p class="note" id="slot-settings-status"></p>
+          <button type="submit">Enregistrer</button>
+        </form>
+      </div>
+
+      <h2>Calendriers des membres</h2>
+      <p class="note">
+        Chaque personne peut avoir plusieurs calendriers (Google, Outlook, Apple...). L'application ne
+        conserve jamais le contenu de ces calendriers — seul un statut disponible/occupé par créneau est
+        déduit et enregistré.
+      </p>
+      <div class="panel admin-user-list" id="calendar-people-list">
+        <p class="empty">Chargement…</p>
+      </div>
     `;
+    document.getElementById('slot-settings-form').addEventListener('submit', onSaveSlotSettings);
+    await loadSlotSettingsForm();
+    await loadCalendarPeople();
   } catch (err) {
     showError(err.message);
   }

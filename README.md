@@ -278,7 +278,7 @@ Une vraie **playlist Spotify** (persistante, sur un compte Spotify) nécessitera
 
 ## Disponibilités (calendrier)
 
-La page `/calendar.html` montre, pour les 3 prochaines semaines, les créneaux de répétition (lun–ven 18h30–21h, sam–dim 15h–19h) où chaque membre est disponible — calculé par un workflow **n8n** externe qui interroge Google Calendar (FreeBusy API) de chaque personne. Cette fonctionnalité est une fusion complète de l'ancien projet séparé [octane-calendar](https://github.com/nfonteyne/octane-calendar) dans cette application (même thème, même authentification, un seul déploiement).
+La page `/calendar.html` montre, pour les 3 prochaines semaines, les créneaux de répétition où chaque membre est disponible (par défaut lun–ven 18h30–21h, sam–dim 15h–19h — modifiable par un admin depuis `/admin.html`, section "Créneaux de répétition"). Cette section permet aussi de définir une **marge de transport** (en minutes) : la vérification de disponibilité regarde alors un peu avant et un peu après le créneau affiché, pour tenir compte du temps de trajet entre deux évènements du calendrier d'une personne — le créneau lui-même, tel qu'affiché, ne change pas. La disponibilité est déduite directement par l'application, sans service externe : chaque personne peut enregistrer un ou plusieurs calendriers (Google, Outlook, Apple, ou tout autre service exposant un flux ICS/iCal), gérés depuis la même page ("Calendriers des membres").
 
 ### Fonctionnement
 
@@ -286,37 +286,34 @@ La page `/calendar.html` montre, pour les 3 prochaines semaines, les créneaux d
 flowchart LR
     UI["Page /calendar.html"]
     API["API /api/calendar/*"]
-    N8N["Workflow n8n"]
-    GCal[("Google Calendar<br/>FreeBusy API")]
+    Sync["Synchronisation (Node.js)"]
+    ICS[("Flux ICS de chaque personne<br/>Google / Outlook / Apple / autre")]
     DB[("Postgres<br/>calendar_*")]
 
     UI -- "Actualiser" --> API
-    API -- "déclenche (GET webhook)" --> N8N
-    N8N -- "interroge" --> GCal
-    N8N -- "{ slots: [...] }" --> API
-    API -- "ingère" --> DB
+    API -- "déclenche" --> Sync
+    Sync -- "récupère" --> ICS
+    Sync -- "disponible / occupé par créneau" --> DB
     DB -- "lecture" --> API
     API -- "sert les données" --> UI
 ```
 
-- Bouton **"Actualiser les disponibilités"** : appelle `POST /api/calendar/refresh`, qui déclenche le webhook n8n et attend sa réponse en tâche de fond (jusqu'à 5 min), pendant que la page sonde `GET /api/calendar/workflow-status` toutes les 4 secondes.
-- Deux endpoints sont appelés **directement par n8n** (pas par le navigateur, donc pas de session possible) : `POST /api/calendar/ingest` (résultats d'une ingestion) et `POST /api/calendar/workflow-error` (notifié par le workflow d'erreur n8n). Ils sont protégés par un secret partagé plutôt que par la connexion Authentik :
-  ```
-  X-Calendar-Webhook-Secret: <valeur de CALENDAR_WEBHOOK_SECRET>
-  ```
-  En cas de reprise d'un workflow n8n existant (depuis l'ancien `octane-calendar`), mettre à jour ses noeuds HTTP pour pointer vers `https://octane.dandrove.com/api/calendar/...` et ajouter ce header.
+- Bouton **"Actualiser les disponibilités"** : appelle `POST /api/calendar/refresh`, qui récupère chaque flux ICS enregistré et calcule la disponibilité en tâche de fond, pendant que la page sonde `GET /api/calendar/workflow-status` toutes les 4 secondes.
+- Une personne peut avoir plusieurs flux (par exemple un calendrier personnel Google et un calendrier professionnel Outlook) : elle est considérée occupée sur un créneau dès qu'un seul de ses flux montre un évènement chevauchant ce créneau.
+- Si le flux d'une personne est temporairement inaccessible, cette personne est simplement omise du résultat de cette synchronisation (les données précédentes ne sont pas écrasées par une supposition) — un avertissement est journalisé côté serveur (identifiant de la personne uniquement, jamais l'URL du flux ni le contenu d'un évènement).
 
-### Variables d'environnement
+### Confidentialité
 
-| Variable | Description |
-|---|---|
-| `N8N_WEBHOOK_URL` | URL complète du webhook n8n (production, pas l'URL de test) — **optionnel** : sans elle, la consultation des disponibilités déjà connues fonctionne, seul le bouton "Actualiser" renvoie une erreur explicite |
-| `N8N_WEBHOOK_USER` / `N8N_WEBHOOK_PASS` | Identifiants HTTP basic-auth configurés sur le noeud webhook n8n, si le webhook en utilise |
-| `CALENDAR_WEBHOOK_SECRET` | **Requis** — générer avec `openssl rand -hex 32`, à renseigner aussi côté n8n (header `X-Calendar-Webhook-Secret`) |
+Tous les fournisseurs de calendrier n'offrent pas la même granularité de partage :
+
+- **Outlook / Office 365** propose un lien de partage "Disponibilité uniquement" — le flux ICS obtenu ne contient alors que des blocs occupé/libre, sans titre ni description.
+- **Google Calendar** ("adresse secrète au format iCal") et **Apple iCloud** (calendrier partagé) reflètent en revanche le calendrier complet (titres, descriptions, invités, lieu), simplement protégé par une URL difficile à deviner.
+
+La garantie de confidentialité ne repose donc pas sur le fournisseur, mais sur le traitement effectué par l'application elle-même : chaque flux est récupéré, réduit immédiatement à un statut occupé/libre par évènement (début, fin, journée entière), puis tout le reste (titre, description, participants, lieu) est abandonné avant que quoi que ce soit ne soit journalisé, stocké ou renvoyé par l'API. Seul un booléen disponible/occupé par créneau et par personne est conservé en base — jamais le contenu des calendriers.
 
 ### Personnes suivies
 
-La liste des personnes (et leur couleur) est amorcée en base par la migration `006_calendar_seed_people.sql` (Nathan, Raphaël, Yann, Jules, AK — mêmes noms que dans le workflow n8n d'origine, dont le mapping calendrier Google ↔ nom se fait dans le noeud "Build FreeBusy Request"). De nouvelles personnes apparaissant dans les données ingérées sont ajoutées automatiquement avec une couleur de la palette.
+La liste des personnes (et leur couleur) est amorcée en base par la migration `006_calendar_seed_people.sql` (Nathan, Raphaël, Yann, Jules, AK). De nouvelles personnes peuvent être ajoutées directement en base ; leurs flux de calendrier se gèrent ensuite depuis `/admin.html`.
 
 ## Prérequis
 
@@ -351,8 +348,6 @@ Le [Démarrage rapide](#démarrage-rapide-serveur-avec-traefik) ci-dessus couvre
 | `APP_DOMAIN` | Nom de domaine public utilisé par Traefik pour router vers l'app (ex: `octane.dandrove.com`) |
 | `APP_PORT` | Port hôte utilisé uniquement par `docker-compose.dev.yml` (test local sans Traefik) |
 | `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` / `YOUTUBE_API_KEY` | Optionnels — voir [Recherche automatique de morceaux](#recherche-automatique-de-morceaux) |
-| `N8N_WEBHOOK_URL` / `N8N_WEBHOOK_USER` / `N8N_WEBHOOK_PASS` | Optionnels — voir [Disponibilités (calendrier)](#disponibilités-calendrier) |
-| `CALENDAR_WEBHOOK_SECRET` | Requis — voir [Disponibilités (calendrier)](#disponibilités-calendrier) |
 
 Les migrations SQL (`src/db/migrations/*.sql`) sont exécutées automatiquement au démarrage du conteneur `app`, de façon idempotente (une table `schema_migrations` garde la trace des fichiers déjà appliqués).
 
@@ -406,7 +401,8 @@ octane-website/
 │   ├── auth/          # OIDC (Authentik), session, middleware, routes /auth
 │   ├── routes/        # routes API /api/*
 │   ├── repositories/  # accès SQL par table
-│   └── lib/           # helpers purs (validation YouTube/Spotify) — couverts par les tests
+│   ├── services/      # orchestration avec effets de bord (ex: synchronisation calendrier)
+│   └── lib/           # helpers purs (dates, validation YouTube/Spotify...) — couverts par les tests
 └── public/
     ├── *.html          # une page par fonctionnalité
     ├── css/style.css

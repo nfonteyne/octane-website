@@ -1,0 +1,1 @@
+ALTER TABLE calendar_settings ADD COLUMN IF NOT EXISTS margin_minutes SMALLINT NOT NULL DEFAULT 0;

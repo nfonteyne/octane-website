@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeISO, slotDateParis, dayOfWeekParis } = require('../src/lib/calendarDates');
+const { normalizeISO, slotDateParis, dayOfWeekParis, parisWallClockToUTC } = require('../src/lib/calendarDates');
 
 test('normalizeISO: collapses sub-minute noise to the same instant', () => {
   const a = normalizeISO('2026-06-10T18:30:12.345Z');
@@ -46,4 +46,31 @@ test('dayOfWeekParis: maps Monday..Sunday to 1..7', () => {
 test('dayOfWeekParis: DST boundary days still resolve to Sunday (7)', () => {
   assert.equal(dayOfWeekParis('2026-03-29T00:30:00Z'), 7);
   assert.equal(dayOfWeekParis('2026-10-25T01:30:00Z'), 7);
+});
+
+test('parisWallClockToUTC: winter (CET, UTC+1)', () => {
+  const d = parisWallClockToUTC(2026, 1, 15, 18, 30);
+  assert.equal(d.toISOString(), '2026-01-15T17:30:00.000Z');
+});
+
+test('parisWallClockToUTC: summer (CEST, UTC+2)', () => {
+  const d = parisWallClockToUTC(2026, 7, 15, 18, 30);
+  assert.equal(d.toISOString(), '2026-07-15T16:30:00.000Z');
+});
+
+test('parisWallClockToUTC: spring-forward DST boundary (2026-03-29, CET->CEST at 01:00 UTC)', () => {
+  // Just before the jump: still CET (UTC+1).
+  assert.equal(parisWallClockToUTC(2026, 3, 29, 1, 30).toISOString(), '2026-03-29T00:30:00.000Z');
+  // Same evening, after the jump: already CEST (UTC+2).
+  assert.equal(parisWallClockToUTC(2026, 3, 29, 18, 30).toISOString(), '2026-03-29T16:30:00.000Z');
+});
+
+test('parisWallClockToUTC: fall-back DST boundary (2026-10-25, CEST->CET at 01:00 UTC)', () => {
+  // Same evening, after the jump: already CET (UTC+1).
+  assert.equal(parisWallClockToUTC(2026, 10, 25, 18, 30).toISOString(), '2026-10-25T17:30:00.000Z');
+});
+
+test('parisWallClockToUTC and slotDateParis round-trip to the same local date', () => {
+  const d = parisWallClockToUTC(2026, 3, 29, 18, 30);
+  assert.equal(slotDateParis(d.toISOString()), '2026-03-29');
 });

@@ -158,4 +158,100 @@ async function getLastChecked() {
   return rows[0].ts;
 }
 
-module.exports = { getPeople, ingestSlots, getSlots, getLastChecked };
+// Every registered feed across every person, for the sync job — never
+// returned to non-admin API consumers (see getPeople() above, which omits
+// ics_url entirely).
+async function findAllFeeds() {
+  const { rows } = await pool.query(`
+    SELECT f.id, f.person_id, p.name AS person_name, f.label, f.ics_url
+    FROM calendar_feeds f
+    JOIN calendar_people p ON p.id = f.person_id
+    ORDER BY f.person_id, f.id
+  `);
+  return rows;
+}
+
+async function findFeedsForPerson(personId) {
+  const { rows } = await pool.query(
+    'SELECT id, person_id, label, ics_url FROM calendar_feeds WHERE person_id = $1 ORDER BY id',
+    [personId]
+  );
+  return rows;
+}
+
+async function addFeed(personId, { label, icsUrl }) {
+  const { rows } = await pool.query(
+    `INSERT INTO calendar_feeds (person_id, label, ics_url)
+     VALUES ($1, $2, $3)
+     RETURNING id, person_id, label, ics_url`,
+    [personId, label || null, icsUrl]
+  );
+  return rows[0];
+}
+
+async function removeFeed(feedId) {
+  await pool.query('DELETE FROM calendar_feeds WHERE id = $1', [feedId]);
+}
+
+// Admin-only variant of getPeople(): includes each person's registered feeds
+// (label + ics_url) so an admin can review/edit them. The public getPeople()
+// above deliberately never exposes ics_url — it's a secret, effectively
+// granting calendar read access to whoever has it.
+async function getPeopleForAdmin() {
+  const people = await getPeople();
+  const feeds = await findAllFeeds();
+  const feedsByPerson = new Map();
+  for (const feed of feeds) {
+    if (!feedsByPerson.has(feed.person_id)) feedsByPerson.set(feed.person_id, []);
+    feedsByPerson.get(feed.person_id).push({ id: feed.id, label: feed.label, icsUrl: feed.ics_url });
+  }
+  return people.map((p) => ({ ...p, feeds: feedsByPerson.get(p.id) || [] }));
+}
+
+// TIME columns come back from pg as 'HH:MM:SS' strings — split into numbers
+// so callers (calendarAvailability.generateSlots) get plain {hour, minute}.
+function parseTime(hhmmss) {
+  const [hour, minute] = hhmmss.split(':').map(Number);
+  return { hour, minute };
+}
+
+async function getSlotSettings() {
+  const { rows } = await pool.query(
+    'SELECT weekday_start, weekday_end, weekend_start, weekend_end, margin_minutes FROM calendar_settings WHERE id = 1'
+  );
+  const row = rows[0];
+  const weekdayStart = parseTime(row.weekday_start);
+  const weekdayEnd = parseTime(row.weekday_end);
+  const weekendStart = parseTime(row.weekend_start);
+  const weekendEnd = parseTime(row.weekend_end);
+  return {
+    weekday: { startHour: weekdayStart.hour, startMinute: weekdayStart.minute, endHour: weekdayEnd.hour, endMinute: weekdayEnd.minute },
+    weekend: { startHour: weekendStart.hour, startMinute: weekendStart.minute, endHour: weekendEnd.hour, endMinute: weekendEnd.minute },
+    marginMinutes: row.margin_minutes,
+  };
+}
+
+async function updateSlotSettings({ weekdayStart, weekdayEnd, weekendStart, weekendEnd, marginMinutes }) {
+  const { rows } = await pool.query(
+    `UPDATE calendar_settings
+     SET weekday_start = $1, weekday_end = $2, weekend_start = $3, weekend_end = $4, margin_minutes = $5
+     WHERE id = 1
+     RETURNING weekday_start, weekday_end, weekend_start, weekend_end, margin_minutes`,
+    [weekdayStart, weekdayEnd, weekendStart, weekendEnd, marginMinutes]
+  );
+  return rows[0];
+}
+
+module.exports = {
+  getPeople,
+  ingestSlots,
+  getSlots,
+  getLastChecked,
+  findAllFeeds,
+  findFeedsForPerson,
+  addFeed,
+  removeFeed,
+  getPeopleForAdmin,
+  getSlotSettings,
+  updateSlotSettings,
+};

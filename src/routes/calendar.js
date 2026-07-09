@@ -1,7 +1,8 @@
 const express = require('express');
 const calendarRepo = require('../repositories/calendarRepo');
 const workflowState = require('../lib/calendarWorkflowState');
-const config = require('../config');
+const calendarSync = require('../services/calendarSync');
+const { requireAdmin } = require('../auth/middleware');
 const asyncHandler = require('../lib/asyncHandler');
 
 const router = express.Router();
@@ -41,64 +42,118 @@ router.get('/workflow-status', (req, res) => {
   res.json(workflowState.getState());
 });
 
-function webhookHeaders() {
-  const headers = { 'Content-Type': 'application/json' };
-  if (config.n8nWebhookUser && config.n8nWebhookPass) {
-    const token = Buffer.from(`${config.n8nWebhookUser}:${config.n8nWebhookPass}`).toString('base64');
-    headers.Authorization = `Basic ${token}`;
-  }
-  return headers;
+router.post(
+  '/refresh',
+  asyncHandler(async (req, res) => {
+    const feeds = await calendarRepo.findAllFeeds();
+    if (feeds.length === 0) {
+      return res.status(400).json({ error: 'no_feeds_configured' });
+    }
+    if (workflowState.getState().status === 'running') {
+      return res.status(409).json({ ok: false, error: 'A refresh is already in progress' });
+    }
+
+    workflowState.setRunning();
+    res.json({ ok: true });
+
+    // Fire-and-forget: the browser polls GET /workflow-status for the result.
+    (async () => {
+      try {
+        const summary = await calendarSync.syncAvailability();
+        workflowState.setSuccess(
+          `${summary.slotsProcessed} créneaux traités, ${summary.availabilityRows} disponibilités enregistrées ` +
+            `(${summary.availableTrueCount} dispo / ${summary.availableFalseCount} indispo)` +
+            (summary.slotsWithNoPeople > 0 ? ` — ${summary.slotsWithNoPeople} créneaux sans aucune personne, voir les logs serveur` : '') +
+            (summary.failedFeeds > 0 ? ` — ${summary.failedFeeds} calendrier(s) inaccessible(s), voir les logs serveur` : '')
+        );
+      } catch (err) {
+        console.error('[calendar] availability sync failed:', err.message);
+        workflowState.setError(err.message);
+      }
+    })();
+  })
+);
+
+router.get(
+  '/people/admin',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    res.json(await calendarRepo.getPeopleForAdmin());
+  })
+);
+
+router.post(
+  '/people/:id/feeds',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { label, icsUrl } = req.body || {};
+    if (!icsUrl || !icsUrl.trim()) {
+      return res.status(400).json({ error: 'ics_url_required' });
+    }
+    const feed = await calendarRepo.addFeed(parseInt(req.params.id, 10), {
+      label: label ? label.trim() : null,
+      icsUrl: icsUrl.trim(),
+    });
+    res.status(201).json({ id: feed.id, personId: feed.person_id, label: feed.label, icsUrl: feed.ics_url });
+  })
+);
+
+router.delete(
+  '/feeds/:feedId',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    await calendarRepo.removeFeed(parseInt(req.params.feedId, 10));
+    res.status(204).end();
+  })
+);
+
+const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+router.get(
+  '/settings',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const settings = await calendarRepo.getSlotSettings();
+    res.json({
+      weekdayStart: formatTime(settings.weekday.startHour, settings.weekday.startMinute),
+      weekdayEnd: formatTime(settings.weekday.endHour, settings.weekday.endMinute),
+      weekendStart: formatTime(settings.weekend.startHour, settings.weekend.startMinute),
+      weekendEnd: formatTime(settings.weekend.endHour, settings.weekend.endMinute),
+      marginMinutes: settings.marginMinutes,
+    });
+  })
+);
+
+function formatTime(hour, minute) {
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
-router.post('/refresh', (req, res) => {
-  if (!config.n8nWebhookUrl) {
-    return res.status(400).json({ error: 'n8n_not_configured' });
-  }
-  if (workflowState.getState().status === 'running') {
-    return res.status(409).json({ ok: false, error: 'A refresh is already in progress' });
-  }
-
-  workflowState.setRunning();
-  res.json({ ok: true });
-
-  // Fire-and-forget: the browser polls GET /workflow-status for the result.
-  (async () => {
-    const controller = new AbortController();
-    const watchdog = setTimeout(() => controller.abort(), 5 * 60 * 1000);
-    try {
-      const response = await fetch(config.n8nWebhookUrl, {
-        method: 'GET',
-        headers: webhookHeaders(),
-        signal: controller.signal,
-      });
-      clearTimeout(watchdog);
-
-      if (!response.ok) {
-        const text = await response.text();
-        workflowState.setError(`n8n returned ${response.status}: ${text}`);
-        return;
+router.patch(
+  '/settings',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { weekdayStart, weekdayEnd, weekendStart, weekendEnd, marginMinutes } = req.body || {};
+    const times = { weekdayStart, weekdayEnd, weekendStart, weekendEnd };
+    for (const [key, value] of Object.entries(times)) {
+      if (!TIME_RE.test(value || '')) {
+        return res.status(400).json({ error: 'invalid_time', field: key });
       }
-
-      const data = await response.json();
-      if (!Array.isArray(data.slots)) {
-        console.error('[calendar] n8n response had no "slots" array. Raw body:', JSON.stringify(data).slice(0, 500));
-        workflowState.setError('Unexpected response format from n8n');
-        return;
-      }
-
-      const summary = await calendarRepo.ingestSlots(data.slots);
-      workflowState.setSuccess(
-        `${summary.slotsProcessed} créneaux reçus, ${summary.availabilityRows} disponibilités enregistrées ` +
-          `(${summary.availableTrueCount} dispo / ${summary.availableFalseCount} indispo)` +
-          (summary.slotsWithNoPeople > 0 ? ` — ${summary.slotsWithNoPeople} créneaux sans aucune personne, voir les logs serveur` : '')
-      );
-    } catch (err) {
-      clearTimeout(watchdog);
-      const message = err.name === 'AbortError' ? 'n8n did not respond within 5 minutes' : err.message;
-      console.error('[calendar] n8n refresh failed:', message);
-      workflowState.setError(message);
     }
-  })();
-});
+    if (weekdayStart >= weekdayEnd) {
+      return res.status(400).json({ error: 'weekday_start_must_be_before_end' });
+    }
+    if (weekendStart >= weekendEnd) {
+      return res.status(400).json({ error: 'weekend_start_must_be_before_end' });
+    }
+    const margin = Number(marginMinutes);
+    if (!Number.isInteger(margin) || margin < 0 || margin > 180) {
+      return res.status(400).json({ error: 'invalid_margin_minutes' });
+    }
+
+    const values = { ...times, marginMinutes: margin };
+    await calendarRepo.updateSlotSettings(values);
+    res.json(values);
+  })
+);
 
 module.exports = router;

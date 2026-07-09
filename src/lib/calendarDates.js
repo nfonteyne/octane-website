@@ -27,4 +27,42 @@ function dayOfWeekParis(iso) {
   return dow === undefined ? date.getDay() || 7 : dow;
 }
 
-module.exports = { normalizeISO, slotDateParis, dayOfWeekParis };
+// Minutes Europe/Paris is ahead of UTC at the given instant (+60 in winter,
+// +120 in summer) — derived by reading the instant's own Paris-local wall
+// clock back out and diffing against its UTC wall clock, rather than hardcoding
+// DST transition dates (which shift slightly year to year).
+function parisOffsetMinutes(date) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Paris',
+    hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  })
+    .formatToParts(date)
+    .reduce((acc, p) => {
+      acc[p.type] = p.value;
+      return acc;
+    }, {});
+  const parisWallAsUTCMillis = Date.UTC(
+    Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+    parts.hour === '24' ? 0 : Number(parts.hour), Number(parts.minute), Number(parts.second)
+  );
+  return Math.round((parisWallAsUTCMillis - date.getTime()) / 60000);
+}
+
+// The reverse of slotDateParis/dayOfWeekParis: given Paris-local wall-clock
+// components, returns the UTC instant they represent. DST-aware via a small
+// fixed-point iteration (the offset itself depends on the instant, so a naive
+// single guess can land a lookup on the wrong side of a transition).
+function parisWallClockToUTC(year, month, day, hour, minute) {
+  let guess = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  for (let i = 0; i < 2; i++) {
+    const offsetMinutes = parisOffsetMinutes(guess);
+    const corrected = new Date(Date.UTC(year, month - 1, day, hour, minute) - offsetMinutes * 60000);
+    if (corrected.getTime() === guess.getTime()) return corrected;
+    guess = corrected;
+  }
+  return guess;
+}
+
+module.exports = { normalizeISO, slotDateParis, dayOfWeekParis, parisWallClockToUTC };

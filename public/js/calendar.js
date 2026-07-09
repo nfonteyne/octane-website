@@ -202,7 +202,7 @@ function pollWorkflowStatus(btn, maxMs = 180000, intervalMs = 4000) {
   const timer = setInterval(async () => {
     if (Date.now() - started > maxMs) {
       clearInterval(timer);
-      showToast('Le workflow a expiré — aucun résultat après 3 minutes', true);
+      showToast('La synchronisation a expiré — aucun résultat après 3 minutes', true);
       resetRefreshButton(btn);
       return;
     }
@@ -216,8 +216,7 @@ function pollWorkflowStatus(btn, maxMs = 180000, intervalMs = 4000) {
         await loadLastChecked();
       } else if (data.status === 'error') {
         clearInterval(timer);
-        const detail = data.node ? ` (nœud : ${data.node})` : '';
-        showToast('Erreur du workflow : ' + (data.message || 'inconnue') + detail, true);
+        showToast('Erreur lors de la synchronisation : ' + (data.message || 'inconnue'), true);
         resetRefreshButton(btn);
       }
     } catch (err) {

@@ -4,7 +4,6 @@ const sessionMiddleware = require('./auth/session');
 const authRoutes = require('./auth/routes');
 const { attachUser, requireAuth } = require('./auth/middleware');
 const apiRouter = require('./routes');
-const calendarWebhooksRouter = require('./routes/calendarWebhooks');
 
 function createApp() {
   const app = express();
@@ -19,12 +18,6 @@ function createApp() {
   app.use(sessionMiddleware);
   app.use('/auth', authRoutes);
   app.use(attachUser);
-
-  // Called by n8n directly (server-to-server, no session) — secret-protected
-  // per-route inside the router itself, not gated by requireAuth. Must be
-  // mounted before the /api requireAuth line so unmatched paths (e.g.
-  // GET /api/calendar/people) fall through to the normal session-gated router.
-  app.use('/api/calendar', calendarWebhooksRouter);
 
   app.use('/api', requireAuth, apiRouter);
   app.use(requireAuth, express.static(path.join(__dirname, '../public')));
