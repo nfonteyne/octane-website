@@ -138,6 +138,7 @@ router.get(
     try {
       const userinfo = await client.fetchUserInfo(oidcConfig, tokens.access_token, claims.sub);
       picture = userinfo.picture || picture;
+      console.log('[auth] userinfo claims received:', Object.keys(userinfo), '— picture:', userinfo.picture || '(none)');
     } catch (err) {
       console.warn('[auth] failed to fetch userinfo for avatar:', err.message);
     }
