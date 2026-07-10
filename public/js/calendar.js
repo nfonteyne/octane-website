@@ -2,7 +2,10 @@ let state = {
   people: [],
   slots: [],
   personIds: [],
+  rehearsals: [],
 };
+let me = null;
+let currentModalDate = null;
 
 async function loadPeople() {
   state.people = await api.get('/api/calendar/people');
@@ -11,6 +14,12 @@ async function loadPeople() {
 
 async function loadSlots() {
   state.slots = await api.get('/api/calendar/slots?weeks=3');
+  renderCalendar();
+}
+
+async function loadRehearsals() {
+  state.rehearsals = await api.get('/api/rehearsals');
+  renderRehearsals();
   renderCalendar();
 }
 
@@ -52,6 +61,9 @@ function renderCalendar() {
   const slotMap = new Map();
   for (const slot of state.slots) slotMap.set(slot.slot_date, slot);
 
+  const rehearsalsByDate = new Map();
+  for (const r of state.rehearsals) rehearsalsByDate.set(isoDate(new Date(r.startsAt)), r);
+
   // Grid starts on the Monday of the current week so columns align Mon->Sun.
   const start = new Date(today);
   const dow = start.getDay();
@@ -82,6 +94,16 @@ function renderCalendar() {
     dateLabel.className = 'cell-date';
     dateLabel.innerHTML = `<span class="day-num">${date.getDate()}</span>${shortMonth(date)}`;
     cell.appendChild(dateLabel);
+
+    const rehearsal = rehearsalsByDate.get(isoDate(date));
+    if (rehearsal) {
+      cell.classList.add('has-rehearsal');
+      const badge = document.createElement('div');
+      badge.className = 'cell-rehearsal-badge';
+      badge.title = 'Répétition proposée';
+      badge.textContent = '🎸';
+      cell.appendChild(badge);
+    }
 
     if (isPastDay) {
       cell.classList.add('empty');
@@ -212,6 +234,14 @@ function openModal(date, slot, visible) {
   const avail = visible.filter((p) => p.is_available);
   const busy = visible.filter((p) => !p.is_available);
 
+  currentModalDate = { date, slot };
+  const proposeBtn = document.getElementById('modal-propose-rehearsal-btn');
+  const alreadyProposed = state.rehearsals.some((r) => isoDate(new Date(r.startsAt)) === isoDate(date));
+  proposeBtn.disabled = alreadyProposed;
+  proposeBtn.textContent = alreadyProposed
+    ? 'Déjà proposée pour cette date'
+    : 'Proposer cette date pour la prochaine répétition';
+
   document.getElementById('modal-date').textContent = date.toLocaleDateString('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris',
   });
@@ -289,6 +319,114 @@ function showToast(msg, isError = false, duration = 5000) {
 
 function showError(message) {
   document.getElementById('error').innerHTML = `<div class="error-banner">${escapeHtml(message)}</div>`;
+}
+
+// ---------- Répétitions proposées ----------
+
+// Google's "render" template link — well-documented, stable format. Opens
+// directly in the browser with the event pre-filled.
+function googleCalendarLink({ title, startISO, endISO, location }) {
+  const fmt = (iso) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: title,
+    dates: `${fmt(startISO)}/${fmt(endISO)}`,
+  });
+  if (location) params.set('location', location);
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+// Outlook's compose deep-link — same idea, direct web link, no download.
+function outlookCalendarLink({ title, startISO, endISO, location }) {
+  const params = new URLSearchParams({
+    path: '/calendar/action/compose',
+    rru: 'addevent',
+    subject: title,
+    startdt: startISO,
+    enddt: endISO,
+  });
+  if (location) params.set('location', location);
+  return `https://outlook.live.com/calendar/0/deeplink/compose?${params.toString()}`;
+}
+
+// Apple has no equivalent public compose-URL — build a real .ics file
+// client-side instead and expose it as a data: link. Works as a universal
+// fallback too (Android, desktop imports, etc.), not just Apple.
+function icsDataUrl({ title, startISO, endISO, location }) {
+  const fmt = (iso) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+  const escapeIcs = (s) => String(s || '').replace(/([,;])/g, '\\$1').replace(/\n/g, '\\n');
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Octane//Rehearsal//FR',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:rehearsal-${Date.now()}@octane`,
+    `DTSTAMP:${fmt(new Date().toISOString())}`,
+    `DTSTART:${fmt(startISO)}`,
+    `DTEND:${fmt(endISO)}`,
+    `SUMMARY:${escapeIcs(title)}`,
+  ];
+  if (location) lines.push(`LOCATION:${escapeIcs(location)}`);
+  lines.push('END:VEVENT', 'END:VCALENDAR');
+  return `data:text/calendar;charset=utf-8,${encodeURIComponent(lines.join('\r\n'))}`;
+}
+
+function rehearsalRowTemplate(r) {
+  const title = 'Répétition Octane';
+  const linkArgs = { title, startISO: r.startsAt, endISO: r.endsAt, location: r.location };
+  const canRemove = me && (me.id === r.proposedBy || me.isAdmin);
+  return `
+    <div class="rehearsal-row" data-rehearsal-id="${r.id}">
+      <div>
+        <div class="card-title">${formatDatetime(r.startsAt)} – ${formatTime(r.endsAt)}</div>
+        <div class="card-subtitle">${r.location ? `${escapeHtml(r.location)} · ` : ''}Proposée par ${escapeHtml(r.proposedByName)}</div>
+      </div>
+      <div class="rehearsal-actions">
+        <a class="pill-link" href="${googleCalendarLink(linkArgs)}" target="_blank" rel="noopener">+ Google</a>
+        <a class="pill-link" href="${outlookCalendarLink(linkArgs)}" target="_blank" rel="noopener">+ Outlook</a>
+        <a class="pill-link" href="${icsDataUrl(linkArgs)}" download="repetition.ics">+ Apple / autre</a>
+        ${canRemove ? `<button type="button" class="danger icon-btn remove-rehearsal-btn" data-rehearsal-id="${r.id}">Retirer</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderRehearsals() {
+  const section = document.getElementById('rehearsals-section');
+  const container = document.getElementById('rehearsals-list');
+  if (!state.rehearsals.length) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+  container.innerHTML = state.rehearsals.map(rehearsalRowTemplate).join('');
+  container.querySelectorAll('.remove-rehearsal-btn').forEach((btn) => {
+    btn.addEventListener('click', () => onRemoveRehearsal(parseInt(btn.dataset.rehearsalId, 10)));
+  });
+}
+
+async function onProposeRehearsal() {
+  if (!currentModalDate) return;
+  const { slot } = currentModalDate;
+  try {
+    await api.post('/api/rehearsals', { startsAt: slot.lower, endsAt: slot.upper });
+    closeModal();
+    await loadRehearsals();
+    showToast('Répétition proposée.');
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+async function onRemoveRehearsal(id) {
+  try {
+    await api.del(`/api/rehearsals/${id}`);
+    await loadRehearsals();
+  } catch (err) {
+    showError(err.message);
+  }
 }
 
 // ---------- Mes calendriers (self-service ICS feeds) ----------
@@ -379,12 +517,13 @@ async function onRemoveMyFeed(feedId) {
 }
 
 (async function init() {
-  await initNav('calendar');
+  me = await initNav('calendar');
 
   document.getElementById('modal-close').addEventListener('click', closeModal);
   document.getElementById('modal-overlay').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeModal();
   });
+  document.getElementById('modal-propose-rehearsal-btn').addEventListener('click', onProposeRehearsal);
   document.getElementById('my-calendars-modal-close').addEventListener('click', closeMyCalendarsModal);
   document.getElementById('my-calendars-modal-overlay').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeMyCalendarsModal();
@@ -425,6 +564,7 @@ async function onRemoveMyFeed(feedId) {
   try {
     await loadPeople();
     buildFilters();
+    await loadRehearsals();
     await loadSlots();
     await loadLastChecked();
     await loadMyFeeds();

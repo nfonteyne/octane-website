@@ -185,6 +185,7 @@ erDiagram
     USERS ||--o{ CALENDAR_FEEDS : "enregistre"
     USERS ||--o{ CALENDAR_AVAILABILITY : "disponibilite"
     CALENDAR_SLOTS ||--o{ CALENDAR_AVAILABILITY : "contient"
+    USERS ||--o{ REHEARSALS : "propose"
 
     USERS {
         int id PK
@@ -258,6 +259,13 @@ erDiagram
         time weekend_start
         smallint margin_minutes
     }
+    REHEARSALS {
+        int id PK
+        timestamptz starts_at
+        timestamptz ends_at
+        text location
+        int proposed_by FK
+    }
 ```
 
 ## Fonctionnalités
@@ -268,7 +276,7 @@ erDiagram
 | `/suggestions.html` | Tous | Proposer un morceau (liens YouTube et Spotify + note libre), voter approuver/rejeter avec commentaire (attribué nominativement), ajouter une suggestion au répertoire |
 | `/concerts.html` | Tous (lecture et écriture) | Deux onglets sur une même page. **Prochain concert** : choix des morceaux du répertoire, ordre, notes, section rappel, lien "Écouter la setlist sur YouTube". **Historique** : concerts passés, modifiables (date, morceaux, ordre, rappel) et supprimables, avec le même lien playlist ; deux vues, chronologique (par défaut, tous les concerts détaillés avec YouTube embarqué par morceau, du plus récent au plus ancien) et réduite (liste compacte) ; ouvrir un concert passé (`?tab=history&id=...`) reste partageable en lien direct |
 | `/profile.html` | Chacun voit le sien | Profil issu d'Authentik (nom, avatar, groupes) + activité personnelle (morceaux ajoutés, suggestions, votes) ; nom affiché personnalisable (par défaut celui d'Authentik) ; gestion de ses calendriers ICS pour les disponibilités |
-| `/calendar.html` | Tous (lecture et écriture) | Disponibilités du groupe pour les 3 prochaines semaines (calendrier, filtres par personne, modale par jour) ; gestion de ses propres calendriers ICS directement depuis la page — [détails](#disponibilités-calendrier) |
+| `/calendar.html` | Tous (lecture et écriture) | Disponibilités du groupe pour les 3 prochaines semaines (calendrier, filtres par personne, modale par jour) ; gestion de ses propres calendriers ICS directement depuis la page ; proposer une date de répétition et l'ajouter en un clic à son calendrier (Google/Outlook/Apple) — [détails](#disponibilités-calendrier) |
 | `/calendar-ics-help.html` | Tous | Page d'aide : qu'est-ce qu'un lien ICS, comment le trouver sur Google/Outlook/Apple, comment le révoquer/régénérer |
 | `/admin.html` | Admins uniquement | Tableau de bord : statistiques globales (répertoire, suggestions, concerts) et activité par utilisateur ; horaires de répétition et marge de transport pour les disponibilités ; gestion des calendriers ICS de n'importe quel utilisateur |
 
@@ -314,6 +322,14 @@ Chacun gère ses propres flux ICS en libre-service, sans passer par un admin :
 - Depuis `/profile.html`, section "Mes calendriers".
 - Depuis `/calendar.html` directement : un bandeau invite à ajouter un calendrier si aucun n'est encore configuré, et un bouton "Mes calendriers" ouvre à tout moment la même gestion (ajout/suppression) en modale.
 - Un admin peut aussi ajouter/retirer un flux pour le compte d'un autre utilisateur depuis `/admin.html` ("Calendriers des membres").
+
+### Proposer une répétition
+
+En cliquant sur un jour du calendrier, n'importe qui peut proposer ce créneau comme prochaine répétition (bouton dans la modale du jour). La proposition apparaît aussitôt pour tout le monde dans un panneau "Répétitions proposées" en haut de `/calendar.html`, et le jour concerné est repéré sur la grille — pas d'e-mail ni de notification, tout se passe dans l'application. Chaque proposition offre trois liens "ajouter à mon calendrier" :
+- **Google** et **Outlook** : lien qui ouvre directement l'évènement pré-rempli dans le calendrier web du fournisseur, en un clic.
+- **Apple / autre** : un fichier `.ics` généré à la volée (aucun format de lien "ajouter" public n'existe côté Apple) — fonctionne aussi comme solution universelle pour tout autre client calendrier.
+
+Seul l'auteur d'une proposition (ou un admin) peut la retirer. Il n'y a pas de vote/confirmation : plusieurs propositions peuvent coexister, c'est volontairement simple pour l'instant.
 
 Dans les trois cas, un lien renvoie vers `/calendar-ics-help.html` (qu'est-ce qu'un lien ICS, comment le trouver sur Google/Outlook/Apple, comment le révoquer/régénérer en cas de doute). À l'ajout, l'application **teste immédiatement** le lien (récupère et tente de parser le flux) et refuse de l'enregistrer si aucune donnée de calendrier n'y est trouvée — pour éviter d'enregistrer silencieusement un lien invalide ou erroné qui ne remonterait qu'à la prochaine synchronisation.
 

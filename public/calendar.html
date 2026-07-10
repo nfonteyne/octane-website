@@ -30,6 +30,11 @@
     <button type="button" id="btn-my-feed-banner-add">Ajouter mon calendrier</button>
   </div>
 
+  <div id="rehearsals-section" style="display:none">
+    <h2 style="margin:1.5rem 0 0.5rem">Répétitions proposées</h2>
+    <div class="panel" id="rehearsals-list"></div>
+  </div>
+
   <div class="calendar-layout">
     <div class="calendar-filters-backdrop" id="filters-backdrop"></div>
     <aside class="calendar-filters panel" id="filters-panel">
@@ -66,6 +71,9 @@
       <div class="modal-section-title busy">Indisponibles</div>
       <div class="modal-people" id="modal-busy"></div>
     </div>
+    <button type="button" class="secondary" id="modal-propose-rehearsal-btn" style="margin-top:1rem; width:100%;">
+      Proposer cette date pour la prochaine répétition
+    </button>
   </div>
 </div>
 

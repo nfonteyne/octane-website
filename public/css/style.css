@@ -937,6 +937,7 @@ a.back-link:hover { color: var(--accent); }
 }
 
 .cal-cell {
+  position: relative;
   min-height: 92px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -1399,3 +1400,34 @@ a.back-link:hover { color: var(--accent); }
 .add-feed-form input {
   font-size: 0.85rem;
 }
+
+/* ---------- Répétitions proposées ---------- */
+
+.rehearsal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  padding: 0.6rem 0;
+}
+
+.rehearsal-row:last-child { border-bottom: none; }
+
+.rehearsal-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cell-rehearsal-badge {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.4rem;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.cal-cell.has-rehearsal { border-color: var(--accent); }
