@@ -93,6 +93,105 @@ function bindConcertLinks(container) {
   });
 }
 
+// ---------- Prochain concert : liste des concerts à venir ----------
+
+let upcomingConcerts = [];
+
+function upcomingConcertRowTemplate(c) {
+  return `
+    <div class="card concert-row" data-concert-id="${c.id}">
+      <div class="concert-row-info" data-concert-id="${c.id}">
+        <div class="card-title">${escapeHtml(c.name || 'Concert')}</div>
+        <div class="card-subtitle">${escapeHtml(c.venue || '')} · ${formatDateShort(c.concert_date)}</div>
+      </div>
+      <div class="concert-row-actions">
+        <button type="button" class="secondary icon-btn edit-concert-btn" data-concert-id="${c.id}" title="Modifier">✏️<span class="btn-label"> Modifier</span></button>
+        <button type="button" class="danger icon-btn delete-concert-btn" data-concert-id="${c.id}" title="Supprimer">🗑️<span class="btn-label"> Supprimer</span></button>
+      </div>
+    </div>
+  `;
+}
+
+async function loadUpcoming() {
+  upcomingConcerts = await api.get('/api/setlists/upcoming');
+  renderUpcomingList();
+}
+
+function renderUpcomingList() {
+  const container = document.getElementById('upcoming-concerts-list');
+  container.innerHTML = upcomingConcerts.length
+    ? upcomingConcerts.map(upcomingConcertRowTemplate).join('')
+    : '<p class="empty">Aucun concert à venir pour le moment.</p>';
+  container.querySelectorAll('.concert-row-info').forEach((el) => {
+    el.addEventListener('click', () => showNextDetail(el.dataset.concertId));
+  });
+  container.querySelectorAll('.edit-concert-btn').forEach((btn) => {
+    btn.addEventListener('click', () => showNextDetail(btn.dataset.concertId));
+  });
+  container.querySelectorAll('.delete-concert-btn').forEach((btn) => {
+    btn.addEventListener('click', () => onDeleteUpcoming(btn.dataset.concertId));
+  });
+}
+
+async function onDeleteUpcoming(id) {
+  try {
+    await api.del(`/api/setlists/${id}`);
+    await loadUpcoming();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+async function onAddConcert(e) {
+  e.preventDefault();
+  const form = e.target;
+  const name = form.name.value.trim();
+  const venue = form.venue.value.trim();
+  const concertDate = form.concertDate.value;
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  try {
+    await api.post('/api/setlists', { name, venue, concertDate });
+    form.reset();
+    document.getElementById('add-concert-panel').style.display = 'none';
+    document.getElementById('toggle-add-concert-btn').textContent = '+ Proposer un concert';
+    await loadUpcoming();
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+function showUpcomingList() {
+  document.getElementById('next-detail-view').style.display = 'none';
+  document.getElementById('next-list-view').style.display = 'block';
+}
+
+function showNextDetail(id) {
+  document.getElementById('next-list-view').style.display = 'none';
+  document.getElementById('next-detail-view').style.display = 'block';
+
+  const editor = createSetlistEditor({
+    containerId: 'next-detail-content',
+    allSongs,
+    getSetlist: async () => {
+      try {
+        return await api.get(`/api/setlists/${id}`);
+      } catch (err) {
+        return null;
+      }
+    },
+    emptyMessage: 'Concert introuvable.',
+    allowDelete: true,
+    onDeleted: async () => {
+      showUpcomingList();
+      await loadUpcoming();
+    },
+  });
+  editor.load();
+}
+
 function renderTimeline() {
   const container = document.getElementById('timeline-view');
   if (!concerts.length) {
@@ -168,16 +267,6 @@ function showHistoryDetail(id) {
   await initNav('concerts');
   allSongs = await api.get('/api/songs');
 
-  const nextEditor = createSetlistEditor({
-    containerId: 'next-content',
-    allSongs,
-    getSetlist: () => api.get('/api/setlists/next'),
-    createSetlist: (data) => api.post('/api/setlists', data),
-    emptyMessage: 'Aucun concert à venir pour le moment.',
-    allowDelete: true,
-    onDeleted: () => nextEditor.load(),
-  });
-
   document.getElementById('tab-next').addEventListener('click', () => switchTab('next'));
   document.getElementById('tab-history').addEventListener('click', () => switchTab('history'));
   document.getElementById('toggle-history-mode-btn').addEventListener('click', () => {
@@ -188,9 +277,20 @@ function showHistoryDetail(id) {
     e.preventDefault();
     showHistoryList();
   });
+  document.getElementById('back-to-upcoming-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    showUpcomingList();
+  });
+  document.getElementById('toggle-add-concert-btn').addEventListener('click', () => {
+    const panel = document.getElementById('add-concert-panel');
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'block';
+    document.getElementById('toggle-add-concert-btn').textContent = isOpen ? '+ Proposer un concert' : 'Annuler';
+  });
+  document.getElementById('add-concert-form').addEventListener('submit', onAddConcert);
 
   try {
-    await nextEditor.load();
+    await loadUpcoming();
     await loadHistory();
 
     const params = new URLSearchParams(window.location.search);

@@ -1440,3 +1440,37 @@ a.back-link:hover { color: var(--accent); }
 .cal-cell.has-rehearsal.has-concert {
   background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, var(--surface)), color-mix(in srgb, var(--accent-2) 20%, var(--surface)));
 }
+
+/* ---------- Concerts: upcoming list + detail actions ---------- */
+
+.concert-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.concert-row-info { cursor: pointer; flex: 1 1 auto; }
+
+.concert-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
+.concert-detail-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Icon-only on narrow screens — the emoji glyph alone is enough to convey
+   "modifier"/"supprimer" once space is tight, matching how the nav collapses
+   the same way at this breakpoint. */
+@media (max-width: 640px) {
+  .btn-label { display: none; }
+}

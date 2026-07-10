@@ -23,7 +23,26 @@
   <div id="error"></div>
 
   <div id="next-view">
-    <div id="next-content">Chargement…</div>
+    <div id="next-list-view">
+      <div class="section-header" style="margin:0 0 0.75rem">
+        <p class="page-subtitle" style="margin:0">Concerts à venir.</p>
+        <button type="button" class="secondary" id="toggle-add-concert-btn">+ Proposer un concert</button>
+      </div>
+      <div class="panel" id="add-concert-panel" style="display:none">
+        <form id="add-concert-form" class="stacked-form">
+          <label>Nom <input name="name"></label>
+          <label>Lieu <input name="venue"></label>
+          <label>Date <input type="date" name="concertDate" required></label>
+          <button type="submit">Créer le concert</button>
+        </form>
+      </div>
+      <div id="upcoming-concerts-list"><p class="empty">Chargement…</p></div>
+    </div>
+
+    <div id="next-detail-view" style="display:none">
+      <a href="#" class="back-link" id="back-to-upcoming-link">&larr; Retour aux concerts à venir</a>
+      <div id="next-detail-content"></div>
+    </div>
   </div>
 
   <div id="history-view" style="display:none">

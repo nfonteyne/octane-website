@@ -14,7 +14,6 @@ function createSetlistEditor({
   let setlist = null;
   let mainRows = [];
   let encoreRows = [];
-  let actionsRevealed = false;
 
   function formatDate(dateStr) {
     const d = new Date(dateStr);
@@ -35,11 +34,16 @@ function createSetlistEditor({
     const rowHtml = (s) => `<li><span class="row-title">${escapeHtml(s.title)}</span> <span class="row-artist">— ${escapeHtml(s.artist)}</span>${s.note ? `<span class="note">${escapeHtml(s.note)}</span>` : ''}</li>`;
     const playlistUrl = youtubePlaylistUrl([...main, ...encore].map((s) => s.youtube_url).filter(Boolean));
     return `
-      <div class="card" id="concert-summary-card" style="cursor:pointer">
-        <div class="card-title">${escapeHtml(setlist.name || 'Concert')}</div>
-        <div class="card-subtitle">${escapeHtml(setlist.venue || '')} · ${formatDate(setlist.concert_date)}</div>
-        ${playlistUrl ? `<div class="song-links"><a class="pill-link youtube" id="playlist-link" href="${playlistUrl}" target="_blank" rel="noopener">&#9658; Écouter la setlist sur YouTube</a></div>` : ''}
-        <p class="note" style="margin-bottom:0">${actionsRevealed ? 'Cliquer pour masquer les actions' : 'Cliquer pour modifier ou supprimer'}</p>
+      <div class="card concert-detail-card">
+        <div>
+          <div class="card-title">${escapeHtml(setlist.name || 'Concert')}</div>
+          <div class="card-subtitle">${escapeHtml(setlist.venue || '')} · ${formatDate(setlist.concert_date)}</div>
+          ${playlistUrl ? `<div class="song-links"><a class="pill-link youtube" href="${playlistUrl}" target="_blank" rel="noopener">&#9658; Écouter la setlist sur YouTube</a></div>` : ''}
+        </div>
+        <div class="concert-row-actions">
+          <button id="edit-btn" type="button" class="secondary icon-btn" title="Modifier">✏️<span class="btn-label"> Modifier</span></button>
+          ${allowDelete ? '<button id="delete-btn" type="button" class="danger icon-btn" title="Supprimer">🗑️<span class="btn-label"> Supprimer</span></button>' : ''}
+        </div>
       </div>
       <div class="setlist-section">
         <h3>Setlist</h3>
@@ -49,11 +53,6 @@ function createSetlistEditor({
         <h3>Rappel</h3>
         ${encore.length ? `<ol class="setlist">${encore.map(rowHtml).join('')}</ol>` : '<p class="empty">Aucun morceau de rappel prévu.</p>'}
       </div>
-      ${actionsRevealed ? `
-      <div class="inline-form" style="margin-top:1rem">
-        <button id="edit-btn" class="secondary">Modifier</button>
-        ${allowDelete ? '<button id="delete-btn" class="danger">Supprimer ce concert</button>' : ''}
-      </div>` : ''}
     `;
   }
 
@@ -66,16 +65,9 @@ function createSetlistEditor({
       return;
     }
     container().innerHTML = readOnlyView();
-    document.getElementById('concert-summary-card').addEventListener('click', () => {
-      actionsRevealed = !actionsRevealed;
-      renderReadOnly();
-    });
-    const playlistLink = document.getElementById('playlist-link');
-    if (playlistLink) playlistLink.addEventListener('click', (e) => e.stopPropagation());
-    const editBtn = document.getElementById('edit-btn');
-    if (editBtn) editBtn.addEventListener('click', (e) => { e.stopPropagation(); enterEditMode(); });
+    document.getElementById('edit-btn').addEventListener('click', enterEditMode);
     const deleteBtn = document.getElementById('delete-btn');
-    if (deleteBtn) deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); onDelete(); });
+    if (deleteBtn) deleteBtn.addEventListener('click', onDelete);
   }
 
   async function onDelete() {
@@ -168,7 +160,6 @@ function createSetlistEditor({
   }
 
   function enterEditMode() {
-    actionsRevealed = false;
     mainRows = setlist.songs
       .filter((s) => !s.is_encore)
       .map((s) => ({ setlistSongId: s.id, songId: s.song_id, title: s.title, artist: s.artist, note: s.note }));
@@ -285,7 +276,6 @@ function createSetlistEditor({
     async load() {
       try {
         setlist = await getSetlist();
-        actionsRevealed = false;
         renderReadOnly();
       } catch (err) {
         showError(err.message);

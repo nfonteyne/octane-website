@@ -19,6 +19,13 @@ router.get(
 );
 
 router.get(
+  '/upcoming',
+  asyncHandler(async (req, res) => {
+    res.json(await setlistsRepo.findUpcoming());
+  })
+);
+
+router.get(
   '/history',
   asyncHandler(async (req, res) => {
     if (req.query.full) {

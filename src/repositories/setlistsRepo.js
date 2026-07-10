@@ -11,6 +11,16 @@ async function findNext() {
   return rows[0] || null;
 }
 
+async function findUpcoming() {
+  const { rows } = await pool.query(
+    `SELECT id, name, venue, concert_date, created_by, created_at, updated_at
+     FROM setlists
+     WHERE concert_date >= CURRENT_DATE
+     ORDER BY concert_date ASC`
+  );
+  return rows;
+}
+
 async function findHistory() {
   const { rows } = await pool.query(
     `SELECT id, name, venue, concert_date, created_by, created_at, updated_at
@@ -152,6 +162,7 @@ async function getStats() {
 
 module.exports = {
   findNext,
+  findUpcoming,
   findHistory,
   findHistoryWithSongs,
   findById,
