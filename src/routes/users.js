@@ -13,10 +13,11 @@ function authentikAccountUrl() {
 router.get(
   '/me',
   asyncHandler(async (req, res) => {
-    const { id, name, username, email, avatar_url, is_admin } = req.user;
+    const { id, name, display_name, username, email, avatar_url, is_admin } = req.user;
     res.json({
       id,
       name,
+      hasCustomName: !!display_name,
       username,
       email,
       avatarUrl: avatar_url,
@@ -29,11 +30,12 @@ router.get(
 router.get(
   '/me/profile',
   asyncHandler(async (req, res) => {
-    const { id, name, username, email, avatar_url, groups, is_admin, created_at } = req.user;
+    const { id, name, display_name, username, email, avatar_url, groups, is_admin, created_at } = req.user;
     const stats = await usersRepo.getActivityStats(id);
     res.json({
       id,
       name,
+      hasCustomName: !!display_name,
       username,
       email,
       avatarUrl: avatar_url,
@@ -43,6 +45,18 @@ router.get(
       stats,
       authentikAccountUrl: authentikAccountUrl(),
     });
+  })
+);
+
+router.patch(
+  '/me/display-name',
+  asyncHandler(async (req, res) => {
+    const { displayName } = req.body || {};
+    if (displayName && displayName.trim().length > 60) {
+      return res.status(400).json({ error: 'display_name_too_long' });
+    }
+    const user = await usersRepo.updateDisplayName(req.user.id, displayName || '');
+    res.json({ name: user.name, hasCustomName: !!user.display_name });
   })
 );
 

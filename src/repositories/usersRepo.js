@@ -1,22 +1,47 @@
 const pool = require('../db/pool');
 
-const PROFILE_FIELDS = 'id, authentik_sub, name, username, email, avatar_url, groups, is_admin, created_at';
+const PROFILE_FIELDS =
+  'id, authentik_sub, name, display_name, username, email, avatar_url, groups, is_admin, created_at';
 
 async function findById(id) {
   const { rows } = await pool.query(`SELECT ${PROFILE_FIELDS} FROM users WHERE id = $1`, [id]);
   return rows[0] || null;
 }
 
+// `name` is always the effective display name (what every other join in the
+// app already reads via `u.name`) — it tracks the Authentik-provided name
+// unless the user has set a display_name override, in which case that takes
+// precedence and survives future logins even if their Authentik name changes.
 async function upsertFromClaims({ sub, name, username, email, avatarUrl, groups, isAdmin }) {
   const { rows } = await pool.query(
-    `INSERT INTO users (authentik_sub, name, username, email, avatar_url, groups, is_admin)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO users (authentik_sub, name, authentik_name, username, email, avatar_url, groups, is_admin)
+     VALUES ($1, $2, $2, $3, $4, $5, $6, $7)
      ON CONFLICT (authentik_sub)
-     DO UPDATE SET name = $2, username = $3, email = $4, avatar_url = $5, groups = $6, is_admin = $7, updated_at = now()
+     DO UPDATE SET
+       authentik_name = $2,
+       name = COALESCE(users.display_name, $2),
+       username = $3, email = $4, avatar_url = $5, groups = $6, is_admin = $7, updated_at = now()
      RETURNING ${PROFILE_FIELDS}`,
     [sub, name, username || null, email, avatarUrl || null, groups || [], isAdmin]
   );
   return rows[0];
+}
+
+// Sets (or, if displayName is empty, clears) the user's display-name
+// override. Also updates `name` immediately so every other page reflects the
+// change right away, without waiting for the next login.
+async function updateDisplayName(userId, displayName) {
+  const trimmed = displayName ? displayName.trim() : '';
+  const { rows } = await pool.query(
+    `UPDATE users
+     SET display_name = NULLIF($2, ''),
+         name = COALESCE(NULLIF($2, ''), authentik_name),
+         updated_at = now()
+     WHERE id = $1
+     RETURNING ${PROFILE_FIELDS}`,
+    [userId, trimmed]
+  );
+  return rows[0] || null;
 }
 
 async function getActivityStats(userId) {
@@ -47,4 +72,4 @@ async function findAllWithActivity() {
   return rows;
 }
 
-module.exports = { findById, upsertFromClaims, getActivityStats, findAllWithActivity };
+module.exports = { findById, upsertFromClaims, updateDisplayName, getActivityStats, findAllWithActivity };

@@ -6,12 +6,9 @@ const { parisWallClockToUTC } = require('../lib/calendarDates');
 const RANGE_DAYS = 22; // slightly more than the 3 weeks generateSlots() covers
 const FETCH_TIMEOUT_MS = 15000;
 
-// Fetches and parses one ICS feed, immediately reducing every VEVENT down to
-// {start, end} — nothing else (title, description, location, attendees) is
-// ever read out of the parsed calendar, so it can't end up logged, stored, or
-// returned by an API by mistake. This holds regardless of whether the
-// provider's feed itself is busy/free-only or full-detail.
-async function fetchBusyIntervals(icsUrl) {
+// Fetches one ICS feed and parses it into node-ical's raw component map.
+// Shared by fetchBusyIntervals (real sync) and testFeed (add-time validation).
+async function fetchIcsCalendar(icsUrl) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   let text;
@@ -22,8 +19,16 @@ async function fetchBusyIntervals(icsUrl) {
   } finally {
     clearTimeout(timeout);
   }
+  return ical.parseICS(text);
+}
 
-  const parsed = ical.parseICS(text);
+// Fetches and parses one ICS feed, immediately reducing every VEVENT down to
+// {start, end} — nothing else (title, description, location, attendees) is
+// ever read out of the parsed calendar, so it can't end up logged, stored, or
+// returned by an API by mistake. This holds regardless of whether the
+// provider's feed itself is busy/free-only or full-detail.
+async function fetchBusyIntervals(icsUrl) {
+  const parsed = await fetchIcsCalendar(icsUrl);
   const rangeFrom = new Date();
   const rangeTo = new Date(rangeFrom.getTime() + RANGE_DAYS * 86400000);
 
@@ -42,6 +47,21 @@ async function fetchBusyIntervals(icsUrl) {
     }
   }
   return intervals;
+}
+
+// Validates a feed URL when a user adds it — catches the exact mistake that
+// motivated this: a URL that "succeeds" (200 OK) but isn't actually that
+// person's calendar (e.g. an HTML page, wrong link) parses to zero components
+// and would otherwise silently sit there doing nothing until the next sync.
+// Returns { eventCount } on success; throws a user-facing message otherwise.
+async function testFeed(icsUrl) {
+  const parsed = await fetchIcsCalendar(icsUrl);
+  const componentCount = Object.keys(parsed).length;
+  if (componentCount === 0) {
+    throw new Error("Aucune donnée de calendrier trouvée à cette adresse — vérifiez le lien.");
+  }
+  const eventCount = Object.values(parsed).filter((c) => c && c.type === 'VEVENT').length;
+  return { eventCount };
 }
 
 function toInterval({ start, end, datetype, isFullDay }) {
@@ -91,10 +111,6 @@ async function syncAvailability() {
     }
     const existing = intervalsByUser.get(feed.user_id) || [];
     intervalsByUser.set(feed.user_id, existing.concat(result.value));
-    console.log(
-      `[calendar] feed id=${feed.id} (user id=${feed.user_id}): ${result.value.length} busy interval(s) — ` +
-        result.value.slice(0, 30).map((iv) => `${iv.start.toISOString()}->${iv.end.toISOString()}`).join(', ')
-    );
   });
 
   const slots = generateSlots(3, slotConfig);
@@ -116,4 +132,4 @@ async function syncAvailability() {
   return { ...summary, failedFeeds };
 }
 
-module.exports = { syncAvailability, fetchBusyIntervals };
+module.exports = { syncAvailability, fetchBusyIntervals, testFeed };

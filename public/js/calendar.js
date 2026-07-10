@@ -348,6 +348,9 @@ async function onAddMyFeed(e) {
   const form = e.target;
   const label = form.label.value.trim();
   const icsUrl = form.icsUrl.value.trim();
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Vérification…';
   try {
     await api.post('/api/calendar/my-feeds', { label, icsUrl });
     form.reset();
@@ -357,6 +360,9 @@ async function onAddMyFeed(e) {
     buildFilters();
   } catch (err) {
     showError(err.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '+ Ajouter';
   }
 }
 

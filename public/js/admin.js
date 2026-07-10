@@ -95,11 +95,16 @@ async function onAddFeed(e, userId) {
   const form = e.target;
   const label = form.label.value.trim();
   const icsUrl = form.icsUrl.value.trim();
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Vérification…';
   try {
     await api.post(`/api/calendar/people/${userId}/feeds`, { label, icsUrl });
     await loadCalendarUsers();
   } catch (err) {
     showError(err.message);
+    submitBtn.disabled = false;
+    submitBtn.textContent = '+ Ajouter';
   }
 }
 

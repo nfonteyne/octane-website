@@ -54,12 +54,18 @@ async function onAddMyFeed(e) {
   const form = e.target;
   const label = form.label.value.trim();
   const icsUrl = form.icsUrl.value.trim();
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Vérification…';
   try {
     await api.post('/api/calendar/my-feeds', { label, icsUrl });
     form.reset();
     await loadMyFeeds();
   } catch (err) {
     showError(err.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '+ Ajouter';
   }
 }
 
@@ -67,6 +73,27 @@ async function onRemoveMyFeed(feedId) {
   try {
     await api.del(`/api/calendar/my-feeds/${feedId}`);
     await loadMyFeeds();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+async function onSaveDisplayName(e) {
+  e.preventDefault();
+  const form = e.target;
+  const displayName = form.displayName.value.trim();
+  try {
+    await api.patch('/api/users/me/display-name', { displayName });
+    window.location.reload();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+async function onResetDisplayName() {
+  try {
+    await api.patch('/api/users/me/display-name', { displayName: '' });
+    window.location.reload();
   } catch (err) {
     showError(err.message);
   }
@@ -86,6 +113,19 @@ async function onRemoveMyFeed(feedId) {
           ${profile.email ? `<div class="card-subtitle">${escapeHtml(profile.email)}</div>` : ''}
           <div class="card-subtitle">Membre depuis ${formatDate(profile.createdAt)}</div>
         </div>
+      </div>
+
+      <h2>Nom affiché</h2>
+      <p class="note">
+        Par défaut, le nom fourni par Authentik est utilisé. Vous pouvez le remplacer par un nom
+        personnalisé ci-dessous — cela n'affecte pas votre compte Authentik.
+      </p>
+      <div class="panel">
+        <form id="display-name-form" class="inline-form">
+          <label>Nom affiché <input name="displayName" value="${escapeHtml(profile.name)}" maxlength="60" required></label>
+          <button type="submit">Enregistrer</button>
+          ${profile.hasCustomName ? '<button type="button" class="secondary" id="reset-display-name-btn">Réinitialiser au nom Authentik</button>' : ''}
+        </form>
       </div>
 
       ${profile.groups && profile.groups.length ? `
@@ -120,7 +160,7 @@ async function onRemoveMyFeed(feedId) {
 
       <div class="panel">
         <p class="empty">
-          Identité gérée par Authentik — pour changer votre nom, email ou mot de passe,
+          Identité gérée par Authentik — pour changer votre email ou mot de passe,
           ${profile.authentikAccountUrl
             ? `rendez-vous sur <a href="${escapeHtml(profile.authentikAccountUrl)}" target="_blank" rel="noopener">votre compte Authentik</a>.`
             : 'rendez-vous sur votre compte Authentik.'}
@@ -128,6 +168,9 @@ async function onRemoveMyFeed(feedId) {
         <a href="/auth/logout"><button type="button" class="danger">Se déconnecter</button></a>
       </div>
     `;
+    document.getElementById('display-name-form').addEventListener('submit', onSaveDisplayName);
+    const resetBtn = document.getElementById('reset-display-name-btn');
+    if (resetBtn) resetBtn.addEventListener('click', onResetDisplayName);
     document.getElementById('add-my-feed-form').addEventListener('submit', onAddMyFeed);
     await loadMyFeeds();
   } catch (err) {

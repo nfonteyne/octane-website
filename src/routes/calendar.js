@@ -93,9 +93,15 @@ router.post(
     if (!icsUrl || !icsUrl.trim()) {
       return res.status(400).json({ error: 'ics_url_required' });
     }
+    const trimmedUrl = icsUrl.trim();
+    try {
+      await calendarSync.testFeed(trimmedUrl);
+    } catch (err) {
+      return res.status(400).json({ error: 'ics_url_unreachable', message: err.message });
+    }
     const feed = await calendarRepo.addFeed(req.user.id, {
       label: label ? label.trim() : null,
-      icsUrl: icsUrl.trim(),
+      icsUrl: trimmedUrl,
     });
     res.status(201).json({ id: feed.id, label: feed.label, icsUrl: feed.ics_url });
   })
@@ -142,9 +148,15 @@ router.post(
     if (!user) {
       return res.status(404).json({ error: 'user_not_found' });
     }
+    const trimmedUrl = icsUrl.trim();
+    try {
+      await calendarSync.testFeed(trimmedUrl);
+    } catch (err) {
+      return res.status(400).json({ error: 'ics_url_unreachable', message: err.message });
+    }
     const feed = await calendarRepo.addFeed(userId, {
       label: label ? label.trim() : null,
-      icsUrl: icsUrl.trim(),
+      icsUrl: trimmedUrl,
     });
     res.status(201).json({ id: feed.id, userId: feed.user_id, label: feed.label, icsUrl: feed.ics_url });
   })
