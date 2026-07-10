@@ -1,3 +1,8 @@
+// Minimal line-art icons (same style as the theme-toggle icons in nav.js) —
+// reused by concerts.js too, both loaded on the same page.
+const CONCERT_EDIT_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>';
+const CONCERT_DELETE_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>';
+
 // Shared setlist editor used by concerts.js for both the "prochain concert"
 // tab and a past concert's detail view: choose songs from the repertoire,
 // order them, add per-song notes, mark encore songs, save. Parameterized so
@@ -41,8 +46,8 @@ function createSetlistEditor({
           ${playlistUrl ? `<div class="song-links"><a class="pill-link youtube" href="${playlistUrl}" target="_blank" rel="noopener">&#9658; Écouter la setlist sur YouTube</a></div>` : ''}
         </div>
         <div class="concert-row-actions">
-          <button id="edit-btn" type="button" class="secondary icon-btn" title="Modifier">✏️<span class="btn-label"> Modifier</span></button>
-          ${allowDelete ? '<button id="delete-btn" type="button" class="danger icon-btn" title="Supprimer">🗑️<span class="btn-label"> Supprimer</span></button>' : ''}
+          <button id="edit-btn" type="button" class="secondary icon-btn" title="Modifier">${CONCERT_EDIT_ICON}<span class="btn-label"> Modifier</span></button>
+          ${allowDelete ? `<button id="delete-btn" type="button" class="danger icon-btn" title="Supprimer">${CONCERT_DELETE_ICON}<span class="btn-label"> Supprimer</span></button>` : ''}
         </div>
       </div>
       <div class="setlist-section">
@@ -71,6 +76,7 @@ function createSetlistEditor({
   }
 
   async function onDelete() {
+    if (!confirm('Supprimer ce concert ? Cette action est irréversible.')) return;
     try {
       await api.del(`/api/setlists/${setlist.id}`);
       if (onDeleted) onDeleted();

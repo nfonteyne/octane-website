@@ -105,8 +105,8 @@ function upcomingConcertRowTemplate(c) {
         <div class="card-subtitle">${escapeHtml(c.venue || '')} · ${formatDateShort(c.concert_date)}</div>
       </div>
       <div class="concert-row-actions">
-        <button type="button" class="secondary icon-btn edit-concert-btn" data-concert-id="${c.id}" title="Modifier">✏️<span class="btn-label"> Modifier</span></button>
-        <button type="button" class="danger icon-btn delete-concert-btn" data-concert-id="${c.id}" title="Supprimer">🗑️<span class="btn-label"> Supprimer</span></button>
+        <button type="button" class="secondary icon-btn edit-concert-btn" data-concert-id="${c.id}" title="Modifier">${CONCERT_EDIT_ICON}<span class="btn-label"> Modifier</span></button>
+        <button type="button" class="danger icon-btn delete-concert-btn" data-concert-id="${c.id}" title="Supprimer">${CONCERT_DELETE_ICON}<span class="btn-label"> Supprimer</span></button>
       </div>
     </div>
   `;
@@ -134,6 +134,7 @@ function renderUpcomingList() {
 }
 
 async function onDeleteUpcoming(id) {
+  if (!confirm('Supprimer ce concert ? Cette action est irréversible.')) return;
   try {
     await api.del(`/api/setlists/${id}`);
     await loadUpcoming();

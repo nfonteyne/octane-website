@@ -660,9 +660,14 @@ button.secondary {
 }
 
 button.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   padding: 0.35rem 0.55rem;
   font-size: 0.85rem;
 }
+
+button.icon-btn svg { flex: 0 0 auto; }
 
 button.danger {
   background: var(--danger);
