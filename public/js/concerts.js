@@ -169,9 +169,16 @@ function showUpcomingList() {
   document.getElementById('next-list-view').style.display = 'block';
 }
 
-function showNextDetail(id) {
+async function showNextDetail(id) {
   document.getElementById('next-list-view').style.display = 'none';
   document.getElementById('next-detail-view').style.display = 'block';
+
+  let concertHours = { start: '19:00', end: '22:00' };
+  try {
+    concertHours = await api.get('/api/calendar/concert-hours');
+  } catch (err) {
+    /* fall back to the defaults above */
+  }
 
   const editor = createSetlistEditor({
     containerId: 'next-detail-content',
@@ -185,6 +192,8 @@ function showNextDetail(id) {
     },
     emptyMessage: 'Concert introuvable.',
     allowDelete: true,
+    showAddToCalendar: true,
+    concertHours,
     onDeleted: async () => {
       showUpcomingList();
       await loadUpcoming();

@@ -3,7 +3,8 @@ let state = {
   slots: [],
   personIds: [],
   rehearsals: [],
-  nextConcert: null,
+  upcomingConcerts: [],
+  concertHours: { start: '19:00', end: '22:00' },
 };
 let me = null;
 let currentModalDate = null;
@@ -24,9 +25,42 @@ async function loadRehearsals() {
   renderCalendar();
 }
 
-async function loadNextConcert() {
-  state.nextConcert = await api.get('/api/setlists/next');
+async function loadUpcomingConcerts() {
+  state.upcomingConcerts = await api.get('/api/setlists/upcoming');
   renderCalendar();
+}
+
+async function loadConcertHours() {
+  state.concertHours = await api.get('/api/calendar/concert-hours');
+}
+
+// concert_date has no time-of-day (a plain DATE column) — synthesize a
+// start/end using the admin-configured default concert hours, assuming the
+// browser's local timezone is close enough to Europe/Paris (same convention
+// used elsewhere on this page for matching concert_date to grid cells).
+function concertTimesFor(concertDateStr) {
+  const d = new Date(concertDateStr);
+  const [startHour, startMinute] = state.concertHours.start.split(':').map(Number);
+  const [endHour, endMinute] = state.concertHours.end.split(':').map(Number);
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), startHour, startMinute);
+  const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), endHour, endMinute);
+  return { startISO: start.toISOString(), endISO: end.toISOString() };
+}
+
+function concertLinksHtml(concert) {
+  const { startISO, endISO } = concertTimesFor(concert.concert_date);
+  const linkArgs = { uid: `concert-${concert.id}`, title: concert.name || 'Concert Octane', startISO, endISO, location: concert.venue };
+  return `
+    <div class="modal-section">
+      <div class="modal-section-title">Concert${concert.name ? ' : ' + escapeHtml(concert.name) : ''}</div>
+      <p class="note" style="margin:0.25rem 0 0.5rem">${concert.venue ? escapeHtml(concert.venue) + ' · ' : ''}${formatTime(startISO)} – ${formatTime(endISO)}</p>
+      <div class="rehearsal-actions">
+        <a class="pill-link" href="${googleCalendarLink(linkArgs)}" target="_blank" rel="noopener">+ Google</a>
+        <a class="pill-link" href="${outlookCalendarLink(linkArgs)}" target="_blank" rel="noopener">+ Outlook</a>
+        <a class="pill-link" href="${icsDataUrl(linkArgs)}" download="concert.ics">+ Apple / autre</a>
+      </div>
+    </div>
+  `;
 }
 
 async function loadLastChecked() {
@@ -70,7 +104,8 @@ function renderCalendar() {
   const rehearsalsByDate = new Map();
   for (const r of state.rehearsals) rehearsalsByDate.set(isoDate(new Date(r.startsAt)), r);
 
-  const nextConcertDate = state.nextConcert ? isoDate(new Date(state.nextConcert.concert_date)) : null;
+  const concertsByDate = new Map();
+  for (const c of state.upcomingConcerts) concertsByDate.set(isoDate(new Date(c.concert_date)), c);
 
   // Grid starts on the Monday of the current week so columns align Mon->Sun.
   const start = new Date(today);
@@ -115,10 +150,11 @@ function renderCalendar() {
       badges.appendChild(badge);
     }
 
-    if (nextConcertDate && isoDate(date) === nextConcertDate) {
+    const concert = concertsByDate.get(isoDate(date));
+    if (concert) {
       cell.classList.add('has-concert');
       const badge = document.createElement('span');
-      badge.title = `Prochain concert${state.nextConcert.name ? ' : ' + state.nextConcert.name : ''}${state.nextConcert.venue ? ' (' + state.nextConcert.venue + ')' : ''}`;
+      badge.title = `Concert${concert.name ? ' : ' + concert.name : ''}${concert.venue ? ' (' + concert.venue + ')' : ''}`;
       badge.textContent = '🎤';
       badges.appendChild(badge);
     }
@@ -165,12 +201,14 @@ function renderCalendar() {
       }
       cell.appendChild(dotsEl);
 
-      cell.addEventListener('click', () => openModal(date, slot, visible));
+      cell.addEventListener('click', () => openModal(date, slot, visible, concert));
 
       const countEl = document.createElement('div');
       countEl.className = 'cell-count';
       countEl.textContent = avail.length + '/' + visible.length;
       cell.appendChild(countEl);
+    } else if (concert) {
+      cell.addEventListener('click', () => openModal(date, null, [], concert));
     } else {
       cell.classList.add('empty');
       const lbl = document.createElement('div');
@@ -250,22 +288,33 @@ function pollWorkflowStatus(btn, maxMs = 180000, intervalMs = 4000) {
   }, intervalMs);
 }
 
-function openModal(date, slot, visible) {
+function openModal(date, slot, visible, concert) {
   const avail = visible.filter((p) => p.is_available);
   const busy = visible.filter((p) => !p.is_available);
 
   currentModalDate = { date, slot };
   const proposeBtn = document.getElementById('modal-propose-rehearsal-btn');
-  const alreadyProposed = state.rehearsals.some((r) => isoDate(new Date(r.startsAt)) === isoDate(date));
-  proposeBtn.disabled = alreadyProposed;
-  proposeBtn.textContent = alreadyProposed
-    ? 'Déjà proposée pour cette date'
-    : 'Proposer cette date pour la prochaine répétition';
+  const availabilitySection = document.getElementById('modal-availability-section');
+  if (slot) {
+    availabilitySection.style.display = '';
+    proposeBtn.style.display = '';
+    const alreadyProposed = state.rehearsals.some((r) => isoDate(new Date(r.startsAt)) === isoDate(date));
+    proposeBtn.disabled = alreadyProposed;
+    proposeBtn.textContent = alreadyProposed
+      ? 'Déjà proposée pour cette date'
+      : 'Proposer cette date pour la prochaine répétition';
+    document.getElementById('modal-time').textContent = formatTime(slot.lower) + ' – ' + formatTime(slot.upper);
+  } else {
+    availabilitySection.style.display = 'none';
+    proposeBtn.style.display = 'none';
+  }
 
   document.getElementById('modal-date').textContent = date.toLocaleDateString('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris',
   });
-  document.getElementById('modal-time').textContent = formatTime(slot.lower) + ' – ' + formatTime(slot.upper);
+
+  const concertSection = document.getElementById('modal-concert-section');
+  concertSection.innerHTML = concert ? concertLinksHtml(concert) : '';
 
   const renderPeople = (list, containerId) => {
     const el = document.getElementById(containerId);
@@ -289,8 +338,10 @@ function openModal(date, slot, visible) {
     }
   };
 
-  renderPeople(avail, 'modal-available');
-  renderPeople(busy, 'modal-busy');
+  if (slot) {
+    renderPeople(avail, 'modal-available');
+    renderPeople(busy, 'modal-busy');
+  }
 
   document.getElementById('modal-overlay').classList.remove('hidden');
 }
@@ -343,59 +394,9 @@ function showError(message) {
 
 // ---------- Répétitions proposées ----------
 
-// Google's "render" template link — well-documented, stable format. Opens
-// directly in the browser with the event pre-filled.
-function googleCalendarLink({ title, startISO, endISO, location }) {
-  const fmt = (iso) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: title,
-    dates: `${fmt(startISO)}/${fmt(endISO)}`,
-  });
-  if (location) params.set('location', location);
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
-}
-
-// Outlook's compose deep-link — same idea, direct web link, no download.
-function outlookCalendarLink({ title, startISO, endISO, location }) {
-  const params = new URLSearchParams({
-    path: '/calendar/action/compose',
-    rru: 'addevent',
-    subject: title,
-    startdt: startISO,
-    enddt: endISO,
-  });
-  if (location) params.set('location', location);
-  return `https://outlook.live.com/calendar/0/deeplink/compose?${params.toString()}`;
-}
-
-// Apple has no equivalent public compose-URL — build a real .ics file
-// client-side instead and expose it as a data: link. Works as a universal
-// fallback too (Android, desktop imports, etc.), not just Apple.
-function icsDataUrl({ title, startISO, endISO, location }) {
-  const fmt = (iso) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
-  const escapeIcs = (s) => String(s || '').replace(/([,;])/g, '\\$1').replace(/\n/g, '\\n');
-  const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Octane//Rehearsal//FR',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    'BEGIN:VEVENT',
-    `UID:rehearsal-${Date.now()}@octane`,
-    `DTSTAMP:${fmt(new Date().toISOString())}`,
-    `DTSTART:${fmt(startISO)}`,
-    `DTEND:${fmt(endISO)}`,
-    `SUMMARY:${escapeIcs(title)}`,
-  ];
-  if (location) lines.push(`LOCATION:${escapeIcs(location)}`);
-  lines.push('END:VEVENT', 'END:VCALENDAR');
-  return `data:text/calendar;charset=utf-8,${encodeURIComponent(lines.join('\r\n'))}`;
-}
-
 function rehearsalRowTemplate(r) {
   const title = 'Répétition Octane';
-  const linkArgs = { title, startISO: r.startsAt, endISO: r.endsAt, location: r.location };
+  const linkArgs = { uid: `rehearsal-${r.id}`, title, startISO: r.startsAt, endISO: r.endsAt, location: r.location };
   const canRemove = me && (me.id === r.proposedBy || me.isAdmin);
   return `
     <div class="rehearsal-row" data-rehearsal-id="${r.id}">
@@ -584,8 +585,9 @@ async function onRemoveMyFeed(feedId) {
   try {
     await loadPeople();
     buildFilters();
+    await loadConcertHours();
     await loadRehearsals();
-    await loadNextConcert();
+    await loadUpcomingConcerts();
     await loadSlots();
     await loadLastChecked();
     await loadMyFeeds();

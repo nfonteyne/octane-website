@@ -125,6 +125,8 @@ async function loadSlotSettingsForm() {
   form.weekendStart.value = settings.weekendStart;
   form.weekendEnd.value = settings.weekendEnd;
   form.marginMinutes.value = settings.marginMinutes;
+  form.concertStart.value = settings.concertStart;
+  form.concertEnd.value = settings.concertEnd;
 }
 
 async function onSaveSlotSettings(e) {
@@ -139,6 +141,8 @@ async function onSaveSlotSettings(e) {
       weekendStart: form.weekendStart.value,
       weekendEnd: form.weekendEnd.value,
       marginMinutes: parseInt(form.marginMinutes.value, 10),
+      concertStart: form.concertStart.value,
+      concertEnd: form.concertEnd.value,
     });
     statusEl.textContent = 'Horaires enregistrés.';
   } catch (err) {
@@ -194,6 +198,12 @@ async function onSaveSlotSettings(e) {
           <p class="note">
             La marge élargit uniquement la vérification de disponibilité (avant/après le créneau),
             pour tenir compte du temps de trajet entre deux évènements — le créneau affiché ne change pas.
+          </p>
+          <label>Concert — début par défaut <input type="time" name="concertStart" required></label>
+          <label>Concert — fin par défaut <input type="time" name="concertEnd" required></label>
+          <p class="note">
+            Comme la date d'un concert n'a pas d'heure enregistrée, ces horaires sont utilisés pour
+            pré-remplir les liens « ajouter à mon agenda » sur <code>/calendar.html</code> et <code>/concerts.html</code>.
           </p>
           <p class="note" id="slot-settings-status"></p>
           <button type="submit">Enregistrer</button>

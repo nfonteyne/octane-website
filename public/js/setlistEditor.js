@@ -15,6 +15,8 @@ function createSetlistEditor({
   emptyMessage = 'Aucun concert.',
   allowDelete = false,
   onDeleted = null,
+  showAddToCalendar = false,
+  concertHours = { start: '19:00', end: '22:00' },
 }) {
   let setlist = null;
   let mainRows = [];
@@ -33,6 +35,32 @@ function createSetlistEditor({
     document.getElementById('error').innerHTML = `<div class="error-banner">${escapeHtml(message)}</div>`;
   }
 
+  // concert_date has no time-of-day (plain DATE column) — synthesize a
+  // start/end from the admin-configured default concert hours, assuming the
+  // browser's local timezone is close enough to Europe/Paris (same
+  // convention used on calendar.js for matching concert_date to grid cells).
+  function addToCalendarHtml() {
+    const d = new Date(setlist.concert_date);
+    const [startHour, startMinute] = concertHours.start.split(':').map(Number);
+    const [endHour, endMinute] = concertHours.end.split(':').map(Number);
+    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), startHour, startMinute);
+    const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), endHour, endMinute);
+    const linkArgs = {
+      uid: `concert-${setlist.id}`,
+      title: setlist.name || 'Concert Octane',
+      startISO: start.toISOString(),
+      endISO: end.toISOString(),
+      location: setlist.venue,
+    };
+    return `
+      <div class="rehearsal-actions" style="margin-top:0.5rem">
+        <a class="pill-link" href="${googleCalendarLink(linkArgs)}" target="_blank" rel="noopener">+ Google</a>
+        <a class="pill-link" href="${outlookCalendarLink(linkArgs)}" target="_blank" rel="noopener">+ Outlook</a>
+        <a class="pill-link" href="${icsDataUrl(linkArgs)}" download="concert.ics">+ Apple / autre</a>
+      </div>
+    `;
+  }
+
   function readOnlyView() {
     const main = setlist.songs.filter((s) => !s.is_encore);
     const encore = setlist.songs.filter((s) => s.is_encore);
@@ -44,6 +72,7 @@ function createSetlistEditor({
           <div class="card-title">${escapeHtml(setlist.name || 'Concert')}</div>
           <div class="card-subtitle">${escapeHtml(setlist.venue || '')} · ${formatDate(setlist.concert_date)}</div>
           ${playlistUrl ? `<div class="song-links"><a class="pill-link youtube" href="${playlistUrl}" target="_blank" rel="noopener">&#9658; Écouter la setlist sur YouTube</a></div>` : ''}
+          ${showAddToCalendar ? addToCalendarHtml() : ''}
         </div>
         <div class="concert-row-actions">
           <button id="edit-btn" type="button" class="secondary icon-btn" title="Modifier">${CONCERT_EDIT_ICON}<span class="btn-label"> Modifier</span></button>

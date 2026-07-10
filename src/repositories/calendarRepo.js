@@ -205,27 +205,31 @@ function parseTime(hhmmss) {
 
 async function getSlotSettings() {
   const { rows } = await pool.query(
-    'SELECT weekday_start, weekday_end, weekend_start, weekend_end, margin_minutes FROM calendar_settings WHERE id = 1'
+    'SELECT weekday_start, weekday_end, weekend_start, weekend_end, margin_minutes, concert_start, concert_end FROM calendar_settings WHERE id = 1'
   );
   const row = rows[0];
   const weekdayStart = parseTime(row.weekday_start);
   const weekdayEnd = parseTime(row.weekday_end);
   const weekendStart = parseTime(row.weekend_start);
   const weekendEnd = parseTime(row.weekend_end);
+  const concertStart = parseTime(row.concert_start);
+  const concertEnd = parseTime(row.concert_end);
   return {
     weekday: { startHour: weekdayStart.hour, startMinute: weekdayStart.minute, endHour: weekdayEnd.hour, endMinute: weekdayEnd.minute },
     weekend: { startHour: weekendStart.hour, startMinute: weekendStart.minute, endHour: weekendEnd.hour, endMinute: weekendEnd.minute },
     marginMinutes: row.margin_minutes,
+    concert: { startHour: concertStart.hour, startMinute: concertStart.minute, endHour: concertEnd.hour, endMinute: concertEnd.minute },
   };
 }
 
-async function updateSlotSettings({ weekdayStart, weekdayEnd, weekendStart, weekendEnd, marginMinutes }) {
+async function updateSlotSettings({ weekdayStart, weekdayEnd, weekendStart, weekendEnd, marginMinutes, concertStart, concertEnd }) {
   const { rows } = await pool.query(
     `UPDATE calendar_settings
-     SET weekday_start = $1, weekday_end = $2, weekend_start = $3, weekend_end = $4, margin_minutes = $5
+     SET weekday_start = $1, weekday_end = $2, weekend_start = $3, weekend_end = $4, margin_minutes = $5,
+         concert_start = $6, concert_end = $7
      WHERE id = 1
-     RETURNING weekday_start, weekday_end, weekend_start, weekend_end, margin_minutes`,
-    [weekdayStart, weekdayEnd, weekendStart, weekendEnd, marginMinutes]
+     RETURNING weekday_start, weekday_end, weekend_start, weekend_end, margin_minutes, concert_start, concert_end`,
+    [weekdayStart, weekdayEnd, weekendStart, weekendEnd, marginMinutes, concertStart, concertEnd]
   );
   return rows[0];
 }

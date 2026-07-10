@@ -274,11 +274,11 @@ erDiagram
 |---|---|---|
 | `/index.html` | Tous (lecture et écriture) | Répertoire des morceaux travaillés, avec recherche instantanée (titre/artiste), liens/vignettes YouTube et Spotify, tutos embarqués par morceau et par instrument. Ajout avec autocomplete titre/artiste + liens auto-trouvés ([détails](#recherche-automatique-de-morceaux)) |
 | `/suggestions.html` | Tous | Proposer un morceau (liens YouTube et Spotify + note libre), voter approuver/rejeter avec commentaire (attribué nominativement), ajouter une suggestion au répertoire |
-| `/concerts.html` | Tous (lecture et écriture) | Deux onglets sur une même page. **Prochain concert** : liste de tous les concerts à venir (pas seulement le plus proche), créer autant de concerts à venir que nécessaire ; chaque ligne a des actions Modifier/Supprimer directement visibles à droite (icône seule sur mobile) ; ouvrir un concert donne accès au choix des morceaux du répertoire, ordre, notes, section rappel, lien "Écouter la setlist sur YouTube". **Historique** : concerts passés, modifiables (date, morceaux, ordre, rappel) et supprimables, avec le même lien playlist ; deux vues, chronologique (par défaut, tous les concerts détaillés avec YouTube embarqué par morceau, du plus récent au plus ancien) et réduite (liste compacte) ; ouvrir un concert passé (`?tab=history&id=...`) reste partageable en lien direct |
+| `/concerts.html` | Tous (lecture et écriture) | Deux onglets sur une même page. **Prochain concert** : liste de tous les concerts à venir (pas seulement le plus proche), créer autant de concerts à venir que nécessaire ; chaque ligne a des actions Modifier/Supprimer directement visibles à droite (icône seule sur mobile) ; ouvrir un concert donne accès au choix des morceaux du répertoire, ordre, notes, section rappel, lien "Écouter la setlist sur YouTube", et aux liens "ajouter à mon calendrier" (Google/Outlook/Apple). **Historique** : concerts passés, modifiables (date, morceaux, ordre, rappel) et supprimables, avec le même lien playlist ; deux vues, chronologique (par défaut, tous les concerts détaillés avec YouTube embarqué par morceau, du plus récent au plus ancien) et réduite (liste compacte) ; ouvrir un concert passé (`?tab=history&id=...`) reste partageable en lien direct |
 | `/profile.html` | Chacun voit le sien | Profil issu d'Authentik (nom, avatar, groupes) + activité personnelle (morceaux ajoutés, suggestions, votes) ; nom affiché personnalisable (par défaut celui d'Authentik) ; gestion de ses calendriers ICS pour les disponibilités |
-| `/calendar.html` | Tous (lecture et écriture) | Disponibilités du groupe pour les 3 prochaines semaines (calendrier, filtres par personne, modale par jour) ; gestion de ses propres calendriers ICS directement depuis la page ; proposer une date de répétition et l'ajouter en un clic à son calendrier (Google/Outlook/Apple) — [détails](#disponibilités-calendrier) |
+| `/calendar.html` | Tous (lecture et écriture) | Disponibilités du groupe pour les 3 prochaines semaines (calendrier, filtres par personne, modale par jour) ; gestion de ses propres calendriers ICS directement depuis la page ; proposer une date de répétition et l'ajouter en un clic à son calendrier (Google/Outlook/Apple) ; tous les concerts à venir situés dans les 3 semaines affichées sont aussi repérés sur la grille, avec les mêmes liens "ajouter à mon calendrier" en cliquant sur la date — [détails](#disponibilités-calendrier) |
 | `/calendar-ics-help.html` | Tous | Page d'aide : qu'est-ce qu'un lien ICS, comment le trouver sur Google/Outlook/Apple, comment le révoquer/régénérer |
-| `/admin.html` | Admins uniquement | Tableau de bord : statistiques globales (répertoire, suggestions, concerts) et activité par utilisateur ; horaires de répétition et marge de transport pour les disponibilités ; gestion des calendriers ICS de n'importe quel utilisateur |
+| `/admin.html` | Admins uniquement | Tableau de bord : statistiques globales (répertoire, suggestions, concerts) et activité par utilisateur ; horaires de répétition, marge de transport et horaire par défaut d'un concert pour les disponibilités ; gestion des calendriers ICS de n'importe quel utilisateur |
 
 Le mode par défaut est la consultation ; les pages Répertoire, Concerts et Suggestions sont interactives pour toute personne connectée (chaque action reste attribuée nominativement via Authentik).
 
@@ -287,7 +287,7 @@ Un bouton clair/sombre dans la barre de navigation permet de forcer un thème (m
 ## Rôles
 
 - **Membre** : tout le monde — consulte, ajoute/modifie/supprime des morceaux du répertoire et leurs tutos, crée/modifie/supprime des concerts (à venir ou passés) et leur setlist, propose des suggestions, vote/commente, ajoute une suggestion au répertoire, gère ses propres calendriers ICS pour les disponibilités.
-- **Admin** : en plus, rejette ou supprime une suggestion (modération), accède au tableau de bord (`/admin.html` — statistiques, activité par utilisateur), configure les horaires/marge de répétition, et gère les calendriers ICS de n'importe quel utilisateur.
+- **Admin** : en plus, rejette ou supprime une suggestion (modération), accède au tableau de bord (`/admin.html` — statistiques, activité par utilisateur), configure les horaires/marge de répétition et l'horaire par défaut d'un concert, et gère les calendriers ICS de n'importe quel utilisateur.
 
 Il n'y a pas de gestion des comptes utilisateurs dans l'application elle-même — Authentik reste la seule source de vérité pour qui a accès et qui est admin (claim `groups`, recalculé à chaque connexion).
 
@@ -314,7 +314,7 @@ Une vraie **playlist Spotify** (persistante, sur un compte Spotify) nécessitera
 
 ## Disponibilités (calendrier)
 
-La page `/calendar.html` montre, pour les 3 prochaines semaines, les créneaux de répétition où chaque membre est disponible (par défaut lun–ven 18h30–21h, sam–dim 15h–19h — modifiable par un admin depuis `/admin.html`, section "Créneaux de répétition"). Cette section permet aussi de définir une **marge de transport** (en minutes) : la vérification de disponibilité regarde alors un peu avant et un peu après le créneau affiché, pour tenir compte du temps de trajet entre deux évènements du calendrier d'une personne — le créneau lui-même, tel qu'affiché, ne change pas. La disponibilité est déduite directement par l'application, sans service externe : chaque personne peut enregistrer un ou plusieurs calendriers (Google, Outlook, Apple, ou tout autre service exposant un flux ICS/iCal).
+La page `/calendar.html` montre, pour les 3 prochaines semaines, les créneaux de répétition où chaque membre est disponible (par défaut lun–ven 18h30–21h, sam–dim 15h–19h — modifiable par un admin depuis `/admin.html`, section "Créneaux de répétition"). Cette section permet aussi de définir une **marge de transport** (en minutes) : la vérification de disponibilité regarde alors un peu avant et un peu après le créneau affiché, pour tenir compte du temps de trajet entre deux évènements du calendrier d'une personne — le créneau lui-même, tel qu'affiché, ne change pas. La même section permet aussi de définir l'**horaire par défaut d'un concert** (19h–22h par défaut) : comme la date d'un concert n'a pas d'heure enregistrée, ces horaires servent uniquement à pré-remplir les liens "ajouter à mon calendrier" décrits plus bas. La disponibilité est déduite directement par l'application, sans service externe : chaque personne peut enregistrer un ou plusieurs calendriers (Google, Outlook, Apple, ou tout autre service exposant un flux ICS/iCal).
 
 ### Gérer ses calendriers
 
@@ -330,6 +330,14 @@ En cliquant sur un jour du calendrier, n'importe qui peut proposer ce créneau c
 - **Apple / autre** : un fichier `.ics` généré à la volée (aucun format de lien "ajouter" public n'existe côté Apple) — fonctionne aussi comme solution universelle pour tout autre client calendrier.
 
 Seul l'auteur d'une proposition (ou un admin) peut la retirer. Il n'y a pas de vote/confirmation : plusieurs propositions peuvent coexister, c'est volontairement simple pour l'instant.
+
+### Ajouter un concert à son agenda
+
+Les mêmes trois liens "ajouter à mon calendrier" (Google, Outlook, Apple/`.ics`) sont proposés pour un **concert** :
+- Sur `/calendar.html`, en cliquant sur une date qui affiche le badge 🎤 (le jour est cliquable même sans donnée de disponibilité ce jour-là).
+- Sur `/concerts.html`, en cliquant sur un concert à venir (onglet "Prochain concert") — les liens apparaissent dans le détail du concert, pas sur un concert passé (historique).
+
+Comme `concert_date` n'enregistre qu'une date (pas d'heure), l'horaire de l'évènement ajouté est synthétisé à partir de l'horaire par défaut configuré par un admin (voir ci-dessus, 19h–22h par défaut).
 
 Dans les trois cas, un lien renvoie vers `/calendar-ics-help.html` (qu'est-ce qu'un lien ICS, comment le trouver sur Google/Outlook/Apple, comment le révoquer/régénérer en cas de doute). À l'ajout, l'application **teste immédiatement** le lien (récupère et tente de parser le flux) et refuse de l'enregistrer si aucune donnée de calendrier n'y est trouvée — pour éviter d'enregistrer silencieusement un lien invalide ou erroné qui ne remonterait qu'à la prochaine synchronisation.
 

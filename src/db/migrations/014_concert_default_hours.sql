@@ -1,0 +1,2 @@
+ALTER TABLE calendar_settings ADD COLUMN IF NOT EXISTS concert_start TIME NOT NULL DEFAULT '19:00';
+ALTER TABLE calendar_settings ADD COLUMN IF NOT EXISTS concert_end TIME NOT NULL DEFAULT '22:00';

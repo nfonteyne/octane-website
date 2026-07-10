@@ -184,6 +184,22 @@ router.get(
       weekendStart: formatTime(settings.weekend.startHour, settings.weekend.startMinute),
       weekendEnd: formatTime(settings.weekend.endHour, settings.weekend.endMinute),
       marginMinutes: settings.marginMinutes,
+      concertStart: formatTime(settings.concert.startHour, settings.concert.startMinute),
+      concertEnd: formatTime(settings.concert.endHour, settings.concert.endMinute),
+    });
+  })
+);
+
+// Public (any authenticated user): the default concert start/end times are
+// needed client-side on calendar.html and concerts.html to build "add to my
+// calendar" links, but only an admin may change them (see PATCH /settings).
+router.get(
+  '/concert-hours',
+  asyncHandler(async (req, res) => {
+    const settings = await calendarRepo.getSlotSettings();
+    res.json({
+      start: formatTime(settings.concert.startHour, settings.concert.startMinute),
+      end: formatTime(settings.concert.endHour, settings.concert.endMinute),
     });
   })
 );
@@ -196,8 +212,8 @@ router.patch(
   '/settings',
   requireAdmin,
   asyncHandler(async (req, res) => {
-    const { weekdayStart, weekdayEnd, weekendStart, weekendEnd, marginMinutes } = req.body || {};
-    const times = { weekdayStart, weekdayEnd, weekendStart, weekendEnd };
+    const { weekdayStart, weekdayEnd, weekendStart, weekendEnd, marginMinutes, concertStart, concertEnd } = req.body || {};
+    const times = { weekdayStart, weekdayEnd, weekendStart, weekendEnd, concertStart, concertEnd };
     for (const [key, value] of Object.entries(times)) {
       if (!TIME_RE.test(value || '')) {
         return res.status(400).json({ error: 'invalid_time', field: key });
@@ -208,6 +224,9 @@ router.patch(
     }
     if (weekendStart >= weekendEnd) {
       return res.status(400).json({ error: 'weekend_start_must_be_before_end' });
+    }
+    if (concertStart >= concertEnd) {
+      return res.status(400).json({ error: 'concert_start_must_be_before_end' });
     }
     const margin = Number(marginMinutes);
     if (!Number.isInteger(margin) || margin < 0 || margin > 180) {
