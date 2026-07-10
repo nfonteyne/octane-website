@@ -889,6 +889,12 @@ a.back-link:hover { color: var(--accent); }
 .calendar-filters-toggle,
 .calendar-filters-close { display: none; }
 
+.calendar-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .calendar-layout {
   display: grid;
   grid-template-columns: 220px 1fr;
@@ -924,9 +930,11 @@ a.back-link:hover { color: var(--accent); }
 
 .calendar-filters-backdrop { display: none; }
 
+.calendar-main { min-width: 0; }
+
 .calendar-header-row {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 0.5rem;
   color: var(--muted);
   font-size: 0.8rem;
@@ -937,13 +945,14 @@ a.back-link:hover { color: var(--accent); }
 
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 0.5rem;
 }
 
 .cal-cell {
   position: relative;
   min-height: 92px;
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -952,6 +961,7 @@ a.back-link:hover { color: var(--accent); }
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  overflow: hidden;
 }
 
 .cal-cell.today { border-color: var(--accent); border-width: 2px; }
@@ -1155,6 +1165,14 @@ a.back-link:hover { color: var(--accent); }
 
   .calendar-filters-close { display: inline-flex; }
 
+  .calendar-header-actions { width: 100%; }
+  .calendar-header-actions button {
+    flex: 1 1 auto;
+    white-space: normal;
+    line-height: 1.2;
+    font-size: 0.82rem;
+  }
+
   .calendar-layout { grid-template-columns: 1fr; }
 
   .calendar-filters {
@@ -1183,9 +1201,25 @@ a.back-link:hover { color: var(--accent); }
 
   .calendar-filters-backdrop.open { display: block; }
 
-  .calendar-header-row span:nth-child(n) { font-size: 0.7rem; }
+  .calendar-header-row { gap: 0.25rem; }
+  .calendar-header-row span:nth-child(n) { font-size: 0.62rem; }
 
-  .cal-cell { min-height: 64px; font-size: 0.7rem; }
+  .calendar-grid { gap: 0.25rem; }
+
+  .cal-cell { min-height: 56px; font-size: 0.62rem; padding: 0.3rem 0.25rem; gap: 0.15rem; }
+
+  /* Per-person names/times don't fit on a phone-width column — the heat
+     color + the "avail/total" count already convey availability at a
+     glance; full detail is one tap away via the day modal. */
+  .cell-time,
+  .cell-dots { display: none; }
+
+  .cell-date { display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
+  .cell-date .day-num { margin-right: 0; font-size: 0.85rem; }
+
+  .cell-badges { position: static; align-self: center; }
+
+  .cell-count { align-self: center; margin-top: auto; }
 
   .timeline-song-row { flex-wrap: wrap; }
   .timeline-embed,
