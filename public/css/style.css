@@ -1432,5 +1432,11 @@ a.back-link:hover { color: var(--accent); }
   line-height: 1;
 }
 
-.cal-cell.has-rehearsal { border-color: var(--accent); }
-.cal-cell.has-concert { border-color: var(--success); }
+/* Concert/rehearsal markers take priority over the availability heat colors
+   above (same specificity, later in the cascade) — a scheduled date matters
+   more than who's free that day. */
+.cal-cell.has-rehearsal { background: color-mix(in srgb, var(--accent) 20%, var(--surface)); border-color: var(--accent); }
+.cal-cell.has-concert { background: color-mix(in srgb, var(--accent-2) 20%, var(--surface)); border-color: var(--accent-2); }
+.cal-cell.has-rehearsal.has-concert {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, var(--surface)), color-mix(in srgb, var(--accent-2) 20%, var(--surface)));
+}

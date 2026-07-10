@@ -174,6 +174,8 @@ function showHistoryDetail(id) {
     getSetlist: () => api.get('/api/setlists/next'),
     createSetlist: (data) => api.post('/api/setlists', data),
     emptyMessage: 'Aucun concert à venir pour le moment.',
+    allowDelete: true,
+    onDeleted: () => nextEditor.load(),
   });
 
   document.getElementById('tab-next').addEventListener('click', () => switchTab('next'));
