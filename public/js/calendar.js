@@ -3,6 +3,7 @@ let state = {
   slots: [],
   personIds: [],
   rehearsals: [],
+  nextConcert: null,
 };
 let me = null;
 let currentModalDate = null;
@@ -20,6 +21,11 @@ async function loadSlots() {
 async function loadRehearsals() {
   state.rehearsals = await api.get('/api/rehearsals');
   renderRehearsals();
+  renderCalendar();
+}
+
+async function loadNextConcert() {
+  state.nextConcert = await api.get('/api/setlists/next');
   renderCalendar();
 }
 
@@ -64,6 +70,8 @@ function renderCalendar() {
   const rehearsalsByDate = new Map();
   for (const r of state.rehearsals) rehearsalsByDate.set(isoDate(new Date(r.startsAt)), r);
 
+  const nextConcertDate = state.nextConcert ? isoDate(new Date(state.nextConcert.concert_date)) : null;
+
   // Grid starts on the Monday of the current week so columns align Mon->Sun.
   const start = new Date(today);
   const dow = start.getDay();
@@ -95,15 +103,27 @@ function renderCalendar() {
     dateLabel.innerHTML = `<span class="day-num">${date.getDate()}</span>${shortMonth(date)}`;
     cell.appendChild(dateLabel);
 
+    const badges = document.createElement('div');
+    badges.className = 'cell-badges';
+
     const rehearsal = rehearsalsByDate.get(isoDate(date));
     if (rehearsal) {
       cell.classList.add('has-rehearsal');
-      const badge = document.createElement('div');
-      badge.className = 'cell-rehearsal-badge';
+      const badge = document.createElement('span');
       badge.title = 'Répétition proposée';
       badge.textContent = '🎸';
-      cell.appendChild(badge);
+      badges.appendChild(badge);
     }
+
+    if (nextConcertDate && isoDate(date) === nextConcertDate) {
+      cell.classList.add('has-concert');
+      const badge = document.createElement('span');
+      badge.title = `Prochain concert${state.nextConcert.name ? ' : ' + state.nextConcert.name : ''}${state.nextConcert.venue ? ' (' + state.nextConcert.venue + ')' : ''}`;
+      badge.textContent = '🎤';
+      badges.appendChild(badge);
+    }
+
+    if (badges.childElementCount) cell.appendChild(badges);
 
     if (isPastDay) {
       cell.classList.add('empty');
@@ -565,6 +585,7 @@ async function onRemoveMyFeed(feedId) {
     await loadPeople();
     buildFilters();
     await loadRehearsals();
+    await loadNextConcert();
     await loadSlots();
     await loadLastChecked();
     await loadMyFeeds();
