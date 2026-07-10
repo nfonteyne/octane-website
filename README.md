@@ -182,6 +182,9 @@ erDiagram
     SUGGESTIONS }o--o| SONGS : "promue en"
     SETLISTS ||--o{ SETLIST_SONGS : "contient"
     SONGS ||--o{ SETLIST_SONGS : "figure dans"
+    USERS ||--o{ CALENDAR_FEEDS : "enregistre"
+    USERS ||--o{ CALENDAR_AVAILABILITY : "disponibilite"
+    CALENDAR_SLOTS ||--o{ CALENDAR_AVAILABILITY : "contient"
 
     USERS {
         int id PK
@@ -231,6 +234,30 @@ erDiagram
         text note
         bool is_encore
     }
+    CALENDAR_FEEDS {
+        int id PK
+        int user_id FK
+        text label
+        text ics_url
+    }
+    CALENDAR_SLOTS {
+        int id PK
+        timestamptz lower
+        timestamptz upper
+        date slot_date
+    }
+    CALENDAR_AVAILABILITY {
+        int id PK
+        int slot_id FK
+        int user_id FK
+        bool is_available
+    }
+    CALENDAR_SETTINGS {
+        smallint id PK
+        time weekday_start
+        time weekend_start
+        smallint margin_minutes
+    }
 ```
 
 ## Fonctionnalités
@@ -241,7 +268,9 @@ erDiagram
 | `/suggestions.html` | Tous | Proposer un morceau (liens YouTube et Spotify + note libre), voter approuver/rejeter avec commentaire (attribué nominativement), ajouter une suggestion au répertoire |
 | `/concerts.html` | Tous (lecture et écriture) | Deux onglets sur une même page. **Prochain concert** : choix des morceaux du répertoire, ordre, notes, section rappel, lien "Écouter la setlist sur YouTube". **Historique** : concerts passés, modifiables (date, morceaux, ordre, rappel) et supprimables, avec le même lien playlist ; deux vues, chronologique (par défaut, tous les concerts détaillés avec YouTube embarqué par morceau, du plus récent au plus ancien) et réduite (liste compacte) ; ouvrir un concert passé (`?tab=history&id=...`) reste partageable en lien direct |
 | `/profile.html` | Chacun voit le sien | Profil issu d'Authentik (nom, avatar, groupes) + activité personnelle (morceaux ajoutés, suggestions, votes) ; nom affiché personnalisable (par défaut celui d'Authentik) ; gestion de ses calendriers ICS pour les disponibilités |
-| `/calendar.html` | Tous (lecture et écriture) | Disponibilités du groupe pour les 3 prochaines semaines (calendrier, filtres par personne, modale par jour) — [détails](#disponibilités-calendrier) |
+| `/calendar.html` | Tous (lecture et écriture) | Disponibilités du groupe pour les 3 prochaines semaines (calendrier, filtres par personne, modale par jour) ; gestion de ses propres calendriers ICS directement depuis la page — [détails](#disponibilités-calendrier) |
+| `/calendar-ics-help.html` | Tous | Page d'aide : qu'est-ce qu'un lien ICS, comment le trouver sur Google/Outlook/Apple, comment le révoquer/régénérer |
+| `/admin.html` | Admins uniquement | Tableau de bord : statistiques globales (répertoire, suggestions, concerts) et activité par utilisateur ; horaires de répétition et marge de transport pour les disponibilités ; gestion des calendriers ICS de n'importe quel utilisateur |
 
 Le mode par défaut est la consultation ; les pages Répertoire, Concerts et Suggestions sont interactives pour toute personne connectée (chaque action reste attribuée nominativement via Authentik).
 
@@ -249,10 +278,10 @@ Un bouton clair/sombre dans la barre de navigation permet de forcer un thème (m
 
 ## Rôles
 
-- **Membre** : tout le monde — consulte, ajoute/modifie/supprime des morceaux du répertoire et leurs tutos, crée/modifie/supprime des concerts (à venir ou passés) et leur setlist, propose des suggestions, vote/commente, ajoute une suggestion au répertoire.
-- **Admin** : en plus, rejette ou supprime une suggestion (modération).
+- **Membre** : tout le monde — consulte, ajoute/modifie/supprime des morceaux du répertoire et leurs tutos, crée/modifie/supprime des concerts (à venir ou passés) et leur setlist, propose des suggestions, vote/commente, ajoute une suggestion au répertoire, gère ses propres calendriers ICS pour les disponibilités.
+- **Admin** : en plus, rejette ou supprime une suggestion (modération), accède au tableau de bord (`/admin.html` — statistiques, activité par utilisateur), configure les horaires/marge de répétition, et gère les calendriers ICS de n'importe quel utilisateur.
 
-Le rôle admin n'est volontairement pas plus étendu pour l'instant : son périmètre exact (au-delà de la modération des suggestions) reste ouvert et pourra évoluer. Il n'y a pas de gestion des utilisateurs dans l'application elle-même — Authentik reste la seule source de vérité pour qui a accès et qui est admin (claim `groups`, recalculé à chaque connexion).
+Il n'y a pas de gestion des comptes utilisateurs dans l'application elle-même — Authentik reste la seule source de vérité pour qui a accès et qui est admin (claim `groups`, recalculé à chaque connexion).
 
 ## Recherche automatique de morceaux
 
@@ -277,7 +306,16 @@ Une vraie **playlist Spotify** (persistante, sur un compte Spotify) nécessitera
 
 ## Disponibilités (calendrier)
 
-La page `/calendar.html` montre, pour les 3 prochaines semaines, les créneaux de répétition où chaque membre est disponible (par défaut lun–ven 18h30–21h, sam–dim 15h–19h — modifiable par un admin depuis `/admin.html`, section "Créneaux de répétition"). Cette section permet aussi de définir une **marge de transport** (en minutes) : la vérification de disponibilité regarde alors un peu avant et un peu après le créneau affiché, pour tenir compte du temps de trajet entre deux évènements du calendrier d'une personne — le créneau lui-même, tel qu'affiché, ne change pas. La disponibilité est déduite directement par l'application, sans service externe : chaque personne peut enregistrer un ou plusieurs calendriers (Google, Outlook, Apple, ou tout autre service exposant un flux ICS/iCal), gérés depuis la même page ("Calendriers des membres").
+La page `/calendar.html` montre, pour les 3 prochaines semaines, les créneaux de répétition où chaque membre est disponible (par défaut lun–ven 18h30–21h, sam–dim 15h–19h — modifiable par un admin depuis `/admin.html`, section "Créneaux de répétition"). Cette section permet aussi de définir une **marge de transport** (en minutes) : la vérification de disponibilité regarde alors un peu avant et un peu après le créneau affiché, pour tenir compte du temps de trajet entre deux évènements du calendrier d'une personne — le créneau lui-même, tel qu'affiché, ne change pas. La disponibilité est déduite directement par l'application, sans service externe : chaque personne peut enregistrer un ou plusieurs calendriers (Google, Outlook, Apple, ou tout autre service exposant un flux ICS/iCal).
+
+### Gérer ses calendriers
+
+Chacun gère ses propres flux ICS en libre-service, sans passer par un admin :
+- Depuis `/profile.html`, section "Mes calendriers".
+- Depuis `/calendar.html` directement : un bandeau invite à ajouter un calendrier si aucun n'est encore configuré, et un bouton "Mes calendriers" ouvre à tout moment la même gestion (ajout/suppression) en modale.
+- Un admin peut aussi ajouter/retirer un flux pour le compte d'un autre utilisateur depuis `/admin.html` ("Calendriers des membres").
+
+Dans les trois cas, un lien renvoie vers `/calendar-ics-help.html` (qu'est-ce qu'un lien ICS, comment le trouver sur Google/Outlook/Apple, comment le révoquer/régénérer en cas de doute). À l'ajout, l'application **teste immédiatement** le lien (récupère et tente de parser le flux) et refuse de l'enregistrer si aucune donnée de calendrier n'y est trouvée — pour éviter d'enregistrer silencieusement un lien invalide ou erroné qui ne remonterait qu'à la prochaine synchronisation.
 
 ### Fonctionnement
 
