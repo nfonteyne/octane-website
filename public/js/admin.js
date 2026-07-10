@@ -201,6 +201,7 @@ async function onSaveSlotSettings(e) {
         Seuls les utilisateurs avec au moins un calendrier configuré apparaissent sur <code>/calendar.html</code>.
         L'application ne conserve jamais le contenu de ces calendriers — seul un statut disponible/occupé
         par créneau est déduit et enregistré.
+        <a href="/calendar-ics-help.html">Comment trouver le lien ICS d'un utilisateur ?</a>
       </p>
       <div class="panel admin-user-list" id="calendar-people-list">
         <p class="empty">Chargement…</p>

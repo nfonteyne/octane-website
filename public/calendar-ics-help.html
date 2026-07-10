@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trouver mon lien de calendrier — Octane</title>
+<script src="/js/theme-init.js"></script>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="app-header">
+  <nav id="main-nav"></nav>
+</header>
+<main>
+  <h1>Trouver et gérer mon lien de calendrier (ICS / iCal)</h1>
+  <p class="page-subtitle">Comment obtenir le lien à coller dans "Mes calendriers", et comment le révoquer si besoin.</p>
+
+  <h2>Qu'est-ce qu'un lien ICS/iCal ?</h2>
+  <div class="panel">
+    <p>
+      C'est une adresse qui donne un accès en lecture à votre calendrier — n'importe quelle application qui
+      la connaît peut lire son contenu. Elle n'est pas indexée ni devinable, mais elle doit être traitée
+      comme un mot de passe : ne la partagez pas publiquement (message public, dépôt de code, etc.).
+    </p>
+    <p class="note">
+      Cette application ne conserve jamais le contenu de vos calendriers : chaque lien est utilisé pour
+      calculer un statut disponible/occupé par créneau, puis le reste (titres, descriptions, participants,
+      lieux) est immédiatement abandonné — rien n'est stocké ni journalisé au-delà de ce statut.
+    </p>
+  </div>
+
+  <h2>Google Calendar</h2>
+  <div class="panel">
+    <ol>
+      <li>Ouvrez <a href="https://calendar.google.com" target="_blank" rel="noopener">Google Agenda</a> sur ordinateur.</li>
+      <li>Dans la colonne de gauche, survolez le calendrier concerné → menu <strong>⋮</strong> → <strong>Paramètres et partage</strong>.</li>
+      <li>Descendez jusqu'à <strong>"Adresse secrète au format iCal"</strong> et copiez le lien.</li>
+      <li>
+        Pour révoquer ce lien (si vous pensez qu'il a fuité), cliquez sur <strong>Réinitialiser</strong> juste à
+        côté : l'ancien lien cesse immédiatement de fonctionner et un nouveau est généré.
+      </li>
+    </ol>
+  </div>
+
+  <h2>Outlook / Office 365</h2>
+  <div class="panel">
+    <ol>
+      <li>Ouvrez <a href="https://outlook.com" target="_blank" rel="noopener">Outlook</a> sur ordinateur, section Calendrier.</li>
+      <li>Cliquez sur <strong>Partager</strong> → <strong>Publier un calendrier</strong> (ou "Paramètres" → "Calendrier" → "Calendriers partagés" selon la version).</li>
+      <li>
+        Choisissez le calendrier à publier et, si l'option est proposée, le niveau de détail
+        <strong>"Disponibilité uniquement"</strong> — c'est la seule option, parmi Google/Outlook/Apple, qui
+        exporte réellement juste occupé/libre sans détails d'évènements.
+      </li>
+      <li>Copiez le lien ICS fourni.</li>
+      <li>
+        Pour révoquer, retournez sur cet écran et cliquez sur <strong>Ne plus publier / arrêter le partage</strong> :
+        le lien cesse de fonctionner. Publiez ensuite à nouveau pour obtenir un nouveau lien si besoin.
+      </li>
+    </ol>
+  </div>
+
+  <h2>Apple iCloud (iPhone / Mac)</h2>
+  <div class="panel">
+    <p><strong>Sur iPhone/iPad :</strong></p>
+    <ol>
+      <li>Ouvrez l'app <strong>Calendrier</strong>, onglet "Calendriers" en bas.</li>
+      <li>Touchez le <strong>(i)</strong> à côté du calendrier concerné.</li>
+      <li>Activez <strong>"Calendrier public"</strong>, puis touchez <strong>"Partager le lien"</strong> pour copier l'adresse.</li>
+    </ol>
+    <p><strong>Sur Mac :</strong></p>
+    <ol>
+      <li>Ouvrez l'app <strong>Calendrier</strong>, clic droit sur le calendrier concerné dans la barre latérale.</li>
+      <li>Choisissez <strong>"Partage public du calendrier…"</strong> et copiez le lien affiché.</li>
+    </ol>
+    <p>
+      Pour révoquer, désactivez <strong>"Calendrier public"</strong> (iPhone) ou décochez le partage public (Mac) :
+      le lien cesse de fonctionner. Réactivez-le pour en obtenir un nouveau.
+    </p>
+  </div>
+
+  <h2>Si vous pensez que votre lien a été compromis</h2>
+  <div class="panel">
+    <ol>
+      <li>Supprimez le calendrier concerné dans <a href="/profile.html">votre profil</a> (section "Mes calendriers"), ou demandez à un admin de le faire depuis la page Administration.</li>
+      <li>Régénérez un nouveau lien chez votre fournisseur (Google/Outlook/Apple) en suivant les étapes de révocation ci-dessus.</li>
+      <li>Ajoutez ce nouveau lien dans "Mes calendriers".</li>
+    </ol>
+  </div>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/render.js"></script>
+<script src="/js/nav.js"></script>
+<script src="/js/calendar-ics-help.js"></script>
+</body>
+</html>

@@ -115,6 +115,7 @@ async function onRemoveMyFeed(feedId) {
           <input name="icsUrl" type="url" placeholder="URL du calendrier (.ics)" required>
           <button type="submit" class="secondary icon-btn">+ Ajouter</button>
         </form>
+        <p class="note"><a href="/calendar-ics-help.html">Comment trouver mon lien ICS ?</a></p>
       </div>
 
       <div class="panel">
