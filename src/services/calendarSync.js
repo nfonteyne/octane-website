@@ -91,6 +91,10 @@ async function syncAvailability() {
     }
     const existing = intervalsByUser.get(feed.user_id) || [];
     intervalsByUser.set(feed.user_id, existing.concat(result.value));
+    console.log(
+      `[calendar] feed id=${feed.id} (user id=${feed.user_id}): ${result.value.length} busy interval(s) — ` +
+        result.value.slice(0, 30).map((iv) => `${iv.start.toISOString()}->${iv.end.toISOString()}`).join(', ')
+    );
   });
 
   const slots = generateSlots(3, slotConfig);
