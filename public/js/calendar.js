@@ -55,9 +55,7 @@ function concertLinksHtml(concert) {
       <div class="modal-section-title">Concert${concert.name ? ' : ' + escapeHtml(concert.name) : ''}</div>
       <p class="note" style="margin:0.25rem 0 0.5rem">${concert.venue ? escapeHtml(concert.venue) + ' · ' : ''}${formatTime(startISO)} – ${formatTime(endISO)}</p>
       <div class="rehearsal-actions">
-        <a class="pill-link" href="${googleCalendarLink(linkArgs)}" target="_blank" rel="noopener">+ Google</a>
-        <a class="pill-link" href="${outlookCalendarLink(linkArgs)}" target="_blank" rel="noopener">+ Outlook</a>
-        <a class="pill-link" href="${icsDataUrl(linkArgs)}" download="concert.ics">+ Apple / autre</a>
+        ${calendarLinksMenuHtml(linkArgs, 'concert.ics')}
       </div>
     </div>
   `;
@@ -432,24 +430,14 @@ function rehearsalRowTemplate(r) {
       </div>
       <div class="rehearsal-actions">
         ${rehearsalVoteActionsHtml(r)}
-        <a class="pill-link" href="${googleCalendarLink(linkArgs)}" target="_blank" rel="noopener">+ Google</a>
-        <a class="pill-link" href="${outlookCalendarLink(linkArgs)}" target="_blank" rel="noopener">+ Outlook</a>
-        <a class="pill-link" href="${icsDataUrl(linkArgs)}" download="repetition.ics">+ Apple / autre</a>
+        ${calendarLinksMenuHtml(linkArgs, 'repetition.ics')}
         ${canRemove ? `<button type="button" class="danger icon-btn remove-rehearsal-btn" data-rehearsal-id="${r.id}">Retirer</button>` : ''}
       </div>
     </div>
   `;
 }
 
-function renderRehearsals() {
-  const section = document.getElementById('rehearsals-section');
-  const container = document.getElementById('rehearsals-list');
-  if (!state.rehearsals.length) {
-    section.style.display = 'none';
-    return;
-  }
-  section.style.display = '';
-  container.innerHTML = state.rehearsals.map(rehearsalRowTemplate).join('');
+function wireRehearsalActions(container) {
   container.querySelectorAll('.remove-rehearsal-btn').forEach((btn) => {
     btn.addEventListener('click', () => onRemoveRehearsal(parseInt(btn.dataset.rehearsalId, 10)));
   });
@@ -462,6 +450,40 @@ function renderRehearsals() {
   container.querySelectorAll('.undo-rehearsal-vote-btn').forEach((btn) => {
     btn.addEventListener('click', () => onUndoRehearsalVote(parseInt(btn.dataset.rehearsalId, 10)));
   });
+}
+
+function renderRehearsals() {
+  const section = document.getElementById('rehearsals-section');
+  const container = document.getElementById('rehearsals-list');
+  const votedSection = document.getElementById('rehearsals-voted-section');
+  const votedSummary = document.getElementById('rehearsals-voted-summary');
+  const votedContainer = document.getElementById('rehearsals-voted-list');
+
+  if (!state.rehearsals.length) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+
+  const pending = state.rehearsals.filter(
+    (r) => !me || !r.votes.some((v) => v.userId === me.id)
+  );
+  const voted = state.rehearsals.filter(
+    (r) => me && r.votes.some((v) => v.userId === me.id)
+  );
+
+  container.innerHTML = pending.map(rehearsalRowTemplate).join('');
+  wireRehearsalActions(container);
+
+  if (voted.length) {
+    votedSection.style.display = '';
+    votedSummary.textContent = `Répétitions traitées (${voted.length})`;
+    votedContainer.innerHTML = voted.map(rehearsalRowTemplate).join('');
+    wireRehearsalActions(votedContainer);
+  } else {
+    votedSection.style.display = 'none';
+    votedContainer.innerHTML = '';
+  }
 }
 
 async function onProposeRehearsal() {

@@ -54,9 +54,7 @@ function createSetlistEditor({
     };
     return `
       <div class="rehearsal-actions" style="margin-top:0.5rem">
-        <a class="pill-link" href="${googleCalendarLink(linkArgs)}" target="_blank" rel="noopener">+ Google</a>
-        <a class="pill-link" href="${outlookCalendarLink(linkArgs)}" target="_blank" rel="noopener">+ Outlook</a>
-        <a class="pill-link" href="${icsDataUrl(linkArgs)}" download="concert.ics">+ Apple / autre</a>
+        ${calendarLinksMenuHtml(linkArgs, 'concert.ics')}
       </div>
     `;
   }

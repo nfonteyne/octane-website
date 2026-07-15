@@ -118,3 +118,26 @@ function icsDataUrl({ uid, title, startISO, endISO, location }) {
   lines.push('END:VEVENT', 'END:VCALENDAR');
   return `data:text/calendar;charset=utf-8,${encodeURIComponent(lines.join('\r\n'))}`;
 }
+
+// Single "+ Calendrier" control that reveals the 3 provider links on click,
+// instead of showing all 3 pills side by side.
+function calendarLinksMenuHtml(linkArgs, icsFilename) {
+  return `
+    <details class="calendar-menu">
+      <summary class="pill-link">+ Calendrier</summary>
+      <div class="calendar-menu-options">
+        <a href="${googleCalendarLink(linkArgs)}" target="_blank" rel="noopener">Google</a>
+        <a href="${outlookCalendarLink(linkArgs)}" target="_blank" rel="noopener">Outlook</a>
+        <a href="${icsDataUrl(linkArgs)}" download="${escapeHtml(icsFilename)}">Apple / autre (.ics)</a>
+      </div>
+    </details>
+  `;
+}
+
+// Close any open "+ Calendrier" menu when picking a link inside it or
+// clicking anywhere else on the page.
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('details.calendar-menu[open]').forEach((menu) => {
+    if (!menu.contains(e.target) || e.target.closest('a')) menu.open = false;
+  });
+});

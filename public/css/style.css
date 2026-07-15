@@ -513,6 +513,39 @@ h3 { font-size: 1rem; margin: 0 0 0.5rem; }
   .pill-link.spotify { border-color: #205934; }
 }
 
+.calendar-menu { position: relative; display: inline-block; }
+
+.calendar-menu > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.calendar-menu > summary::-webkit-details-marker { display: none; }
+
+.calendar-menu-options {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.calendar-menu-options a {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.calendar-menu-options a:hover { background: var(--surface-alt); }
+
 /* ---------- Tags (tutorials / instruments) ---------- */
 
 .tag-list {
@@ -1481,6 +1514,22 @@ a.back-link:hover { color: var(--accent); }
 
 .vote-badge.accept { border-left: 3px solid var(--success); }
 .vote-badge.reject { border-left: 3px solid var(--danger); }
+
+.rehearsal-voted-section { margin-top: 0.75rem; }
+
+.rehearsal-voted-section > summary {
+  color: var(--muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  list-style: none;
+  padding: 0.3rem 0;
+}
+
+.rehearsal-voted-section > summary::-webkit-details-marker { display: none; }
+.rehearsal-voted-section > summary::before { content: '▸ '; }
+.rehearsal-voted-section[open] > summary::before { content: '▾ '; }
+
+.rehearsal-voted-section .panel { margin-top: 0.4rem; opacity: 0.85; }
 
 .cell-badges {
   position: absolute;
