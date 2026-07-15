@@ -394,6 +394,31 @@ function showError(message) {
 
 // ---------- Répétitions proposées ----------
 
+function rehearsalVoteActionsHtml(r) {
+  const myVote = me ? r.votes.find((v) => v.userId === me.id) : null;
+  if (!myVote) {
+    return `
+      <button type="button" class="secondary accept-rehearsal-btn" data-rehearsal-id="${r.id}">✔ Accepter</button>
+      <button type="button" class="secondary reject-rehearsal-btn" data-rehearsal-id="${r.id}">✘ Refuser</button>
+    `;
+  }
+  const label = myVote.vote === 'accept' ? '✔ Vous avez accepté' : '✘ Vous avez refusé';
+  return `
+    <span class="vote-badge ${myVote.vote}">${label}</span>
+    <button type="button" class="secondary undo-rehearsal-vote-btn" data-rehearsal-id="${r.id}">Annuler</button>
+  `;
+}
+
+function rehearsalAcceptedByHtml(r) {
+  const accepted = r.votes.filter((v) => v.vote === 'accept');
+  if (!accepted.length) return '';
+  return `
+    <div class="rehearsal-accepted-by">
+      ${accepted.map((v) => `${avatarHtml({ name: v.name, avatarUrl: v.avatarUrl }, 'avatar-sm')}<span>${escapeHtml(v.name)}</span>`).join('')}
+    </div>
+  `;
+}
+
 function rehearsalRowTemplate(r) {
   const title = 'Répétition Octane';
   const linkArgs = { uid: `rehearsal-${r.id}`, title, startISO: r.startsAt, endISO: r.endsAt, location: r.location };
@@ -403,8 +428,10 @@ function rehearsalRowTemplate(r) {
       <div>
         <div class="card-title">${formatDatetime(r.startsAt)} – ${formatTime(r.endsAt)}</div>
         <div class="card-subtitle">${r.location ? `${escapeHtml(r.location)} · ` : ''}Proposée par ${escapeHtml(r.proposedByName)}</div>
+        ${rehearsalAcceptedByHtml(r)}
       </div>
       <div class="rehearsal-actions">
+        ${rehearsalVoteActionsHtml(r)}
         <a class="pill-link" href="${googleCalendarLink(linkArgs)}" target="_blank" rel="noopener">+ Google</a>
         <a class="pill-link" href="${outlookCalendarLink(linkArgs)}" target="_blank" rel="noopener">+ Outlook</a>
         <a class="pill-link" href="${icsDataUrl(linkArgs)}" download="repetition.ics">+ Apple / autre</a>
@@ -426,6 +453,15 @@ function renderRehearsals() {
   container.querySelectorAll('.remove-rehearsal-btn').forEach((btn) => {
     btn.addEventListener('click', () => onRemoveRehearsal(parseInt(btn.dataset.rehearsalId, 10)));
   });
+  container.querySelectorAll('.accept-rehearsal-btn').forEach((btn) => {
+    btn.addEventListener('click', () => onVoteRehearsal(parseInt(btn.dataset.rehearsalId, 10), 'accept'));
+  });
+  container.querySelectorAll('.reject-rehearsal-btn').forEach((btn) => {
+    btn.addEventListener('click', () => onVoteRehearsal(parseInt(btn.dataset.rehearsalId, 10), 'reject'));
+  });
+  container.querySelectorAll('.undo-rehearsal-vote-btn').forEach((btn) => {
+    btn.addEventListener('click', () => onUndoRehearsalVote(parseInt(btn.dataset.rehearsalId, 10)));
+  });
 }
 
 async function onProposeRehearsal() {
@@ -444,6 +480,24 @@ async function onProposeRehearsal() {
 async function onRemoveRehearsal(id) {
   try {
     await api.del(`/api/rehearsals/${id}`);
+    await loadRehearsals();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+async function onVoteRehearsal(id, vote) {
+  try {
+    await api.post(`/api/rehearsals/${id}/vote`, { vote });
+    await loadRehearsals();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+async function onUndoRehearsalVote(id) {
+  try {
+    await api.del(`/api/rehearsals/${id}/vote`);
     await loadRehearsals();
   } catch (err) {
     showError(err.message);

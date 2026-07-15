@@ -16,6 +16,7 @@ router.get(
         location: r.location,
         proposedBy: r.proposed_by,
         proposedByName: r.proposed_by_name,
+        votes: r.votes,
       }))
     );
   })
@@ -64,6 +65,33 @@ router.delete(
       return res.status(403).json({ error: 'forbidden' });
     }
     await rehearsalsRepo.remove(req.params.id);
+    res.status(204).end();
+  })
+);
+
+router.post(
+  '/:id/vote',
+  asyncHandler(async (req, res) => {
+    const { vote } = req.body || {};
+    if (!['accept', 'reject'].includes(vote)) {
+      return res.status(400).json({ error: 'invalid_vote' });
+    }
+    const rehearsal = await rehearsalsRepo.findById(req.params.id);
+    if (!rehearsal) return res.status(404).json({ error: 'not_found' });
+    const saved = await rehearsalsRepo.upsertVote(req.params.id, req.user.id, vote);
+    res.json({
+      id: saved.id,
+      rehearsalId: saved.rehearsal_id,
+      userId: saved.user_id,
+      vote: saved.vote,
+    });
+  })
+);
+
+router.delete(
+  '/:id/vote',
+  asyncHandler(async (req, res) => {
+    await rehearsalsRepo.removeVote(req.params.id, req.user.id);
     res.status(204).end();
   })
 );
