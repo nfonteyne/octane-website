@@ -454,6 +454,7 @@ function wireRehearsalActions(container) {
 
 function renderRehearsals() {
   const section = document.getElementById('rehearsals-section');
+  const title = document.getElementById('rehearsals-title');
   const container = document.getElementById('rehearsals-list');
   const votedSection = document.getElementById('rehearsals-voted-section');
   const votedSummary = document.getElementById('rehearsals-voted-summary');
@@ -472,6 +473,8 @@ function renderRehearsals() {
     (r) => me && r.votes.some((v) => v.userId === me.id)
   );
 
+  title.style.display = pending.length ? '' : 'none';
+  container.style.display = pending.length ? '' : 'none';
   container.innerHTML = pending.map(rehearsalRowTemplate).join('');
   wireRehearsalActions(container);
 
