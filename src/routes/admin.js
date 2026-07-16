@@ -3,6 +3,8 @@ const usersRepo = require('../repositories/usersRepo');
 const songsRepo = require('../repositories/songsRepo');
 const suggestionsRepo = require('../repositories/suggestionsRepo');
 const setlistsRepo = require('../repositories/setlistsRepo');
+const discordWebhooksRepo = require('../repositories/discordWebhooksRepo');
+const discord = require('../lib/discord');
 const { requireAdmin } = require('../auth/middleware');
 const asyncHandler = require('../lib/asyncHandler');
 
@@ -50,6 +52,44 @@ router.get(
         avgSongsPerConcert: concerts.avg_songs_per_concert,
       },
     });
+  })
+);
+
+router.get(
+  '/discord-webhooks',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const webhooks = await discordWebhooksRepo.findAll();
+    res.json(webhooks.map((w) => ({ id: w.id, label: w.label, url: w.url, createdAt: w.created_at })));
+  })
+);
+
+router.post(
+  '/discord-webhooks',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { label, url } = req.body || {};
+    if (!url || !discord.isValidWebhookUrl(url.trim())) {
+      return res.status(400).json({ error: 'invalid_webhook_url' });
+    }
+    const trimmedUrl = url.trim();
+    try {
+      const reachable = await discord.checkWebhookReachable(trimmedUrl);
+      if (!reachable) return res.status(400).json({ error: 'webhook_unreachable' });
+    } catch (err) {
+      return res.status(400).json({ error: 'webhook_unreachable', message: err.message });
+    }
+    const webhook = await discordWebhooksRepo.create({ label: label ? label.trim() : null, url: trimmedUrl });
+    res.status(201).json({ id: webhook.id, label: webhook.label, url: webhook.url, createdAt: webhook.created_at });
+  })
+);
+
+router.delete(
+  '/discord-webhooks/:id',
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    await discordWebhooksRepo.remove(parseInt(req.params.id, 10));
+    res.status(204).end();
   })
 );
 

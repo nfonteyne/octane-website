@@ -56,6 +56,68 @@ function feedRowTemplate(feed) {
   `;
 }
 
+// Discord webhook URLs carry a secret token — mask it in the list view like
+// maskIcsUrl already does for ICS feed URLs.
+function maskDiscordUrl(url) {
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split('/').filter(Boolean);
+    const webhookId = parts[parts.length - 2];
+    return `${u.hostname}/…/${webhookId}/••••`;
+  } catch {
+    return '••••';
+  }
+}
+
+function discordWebhookRowTemplate(hook) {
+  return `
+    <div class="feed-row" data-webhook-id="${hook.id}">
+      <span class="feed-label">${hook.label ? `${escapeHtml(hook.label)} — ` : ''}${escapeHtml(maskDiscordUrl(hook.url))}</span>
+      <button type="button" class="secondary icon-btn remove-discord-webhook-btn" data-webhook-id="${hook.id}">Supprimer</button>
+    </div>
+  `;
+}
+
+async function loadDiscordWebhooks() {
+  const webhooks = await api.get('/api/admin/discord-webhooks');
+  const container = document.getElementById('discord-webhooks-list');
+  container.innerHTML = webhooks.length
+    ? webhooks.map(discordWebhookRowTemplate).join('')
+    : '<p class="empty">Aucun webhook configuré.</p>';
+  container.querySelectorAll('.remove-discord-webhook-btn').forEach((btn) => {
+    btn.addEventListener('click', () => onRemoveDiscordWebhook(parseInt(btn.dataset.webhookId, 10)));
+  });
+}
+
+async function onAddDiscordWebhook(e) {
+  e.preventDefault();
+  const form = e.target;
+  const label = form.label.value.trim();
+  const url = form.url.value.trim();
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Vérification…';
+  try {
+    await api.post('/api/admin/discord-webhooks', { label, url });
+    form.reset();
+    await loadDiscordWebhooks();
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '+ Ajouter';
+  }
+}
+
+async function onRemoveDiscordWebhook(id) {
+  try {
+    await api.del(`/api/admin/discord-webhooks/${id}`);
+    await loadDiscordWebhooks();
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
 function calendarUserRowTemplate(user) {
   return `
     <div class="admin-user-row calendar-person-row" data-user-id="${user.id}">
@@ -221,10 +283,26 @@ async function onSaveSlotSettings(e) {
       <div class="panel admin-user-list" id="calendar-people-list">
         <p class="empty">Chargement…</p>
       </div>
+
+      <h2>Notifications Discord</h2>
+      <p class="note">
+        Chaque webhook reçoit un message quand une répétition est proposée, retirée, acceptée ou refusée.
+        Créer un webhook : sur Discord, Paramètres du salon → Intégrations → Webhooks → Nouveau webhook → Copier l'URL.
+      </p>
+      <div class="panel" id="discord-webhooks-list">
+        <p class="empty">Chargement…</p>
+      </div>
+      <form id="add-discord-webhook-form" class="inline-form">
+        <input name="label" placeholder="Libellé (optionnel)">
+        <input name="url" type="url" placeholder="URL du webhook Discord" required>
+        <button type="submit" class="secondary icon-btn">+ Ajouter</button>
+      </form>
     `;
     document.getElementById('slot-settings-form').addEventListener('submit', onSaveSlotSettings);
+    document.getElementById('add-discord-webhook-form').addEventListener('submit', onAddDiscordWebhook);
     await loadSlotSettingsForm();
     await loadCalendarUsers();
+    await loadDiscordWebhooks();
   } catch (err) {
     showError(err.message);
   }

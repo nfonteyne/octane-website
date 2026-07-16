@@ -1,5 +1,6 @@
 const express = require('express');
 const rehearsalsRepo = require('../repositories/rehearsalsRepo');
+const discord = require('../lib/discord');
 const asyncHandler = require('../lib/asyncHandler');
 
 const router = express.Router();
@@ -46,6 +47,9 @@ router.post(
       location: location ? location.trim() : null,
       proposedBy: req.user.id,
     });
+    discord.notifyAll(
+      discord.rehearsalProposedMessage({ userName: req.user.name, startsAt: rehearsal.starts_at, location: rehearsal.location })
+    );
     res.status(201).json({
       id: rehearsal.id,
       startsAt: rehearsal.starts_at,
@@ -65,6 +69,7 @@ router.delete(
       return res.status(403).json({ error: 'forbidden' });
     }
     await rehearsalsRepo.remove(req.params.id);
+    discord.notifyAll(discord.rehearsalRemovedMessage({ userName: req.user.name, startsAt: rehearsal.starts_at }));
     res.status(204).end();
   })
 );
@@ -79,6 +84,7 @@ router.post(
     const rehearsal = await rehearsalsRepo.findById(req.params.id);
     if (!rehearsal) return res.status(404).json({ error: 'not_found' });
     const saved = await rehearsalsRepo.upsertVote(req.params.id, req.user.id, vote);
+    discord.notifyAll(discord.rehearsalVoteMessage({ userName: req.user.name, vote, startsAt: rehearsal.starts_at }));
     res.json({
       id: saved.id,
       rehearsalId: saved.rehearsal_id,
