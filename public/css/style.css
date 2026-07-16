@@ -919,8 +919,10 @@ a.back-link:hover { color: var(--accent); }
 
 /* ---------- Calendar (availability) ---------- */
 
-.calendar-filters-toggle,
-.calendar-filters-close { display: none; }
+/* button. prefix needed so this outweighs button.icon-btn's own
+   `display: inline-flex` (same 720px-and-below rule further down). */
+button.calendar-filters-toggle,
+button.calendar-filters-close { display: none; }
 
 .calendar-header-actions {
   display: flex;
@@ -1196,7 +1198,7 @@ a.back-link:hover { color: var(--accent); }
 
   .profile-header { flex-direction: column; text-align: center; }
 
-  .calendar-filters-close { display: inline-flex; }
+  button.calendar-filters-close { display: inline-flex; }
 
   .calendar-header-actions { width: 100%; }
   .calendar-header-actions button {
