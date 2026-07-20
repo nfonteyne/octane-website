@@ -61,6 +61,20 @@ function concertLinksHtml(concert) {
   `;
 }
 
+function rehearsalInfoHtml(r) {
+  const linkArgs = { uid: `rehearsal-${r.id}`, title: 'Répétition Octane', startISO: r.startsAt, endISO: r.endsAt, location: r.location };
+  return `
+    <div class="modal-section">
+      <div class="modal-section-title">Répétition proposée</div>
+      <p class="note" style="margin:0.25rem 0 0.5rem">${r.location ? escapeHtml(r.location) + ' · ' : ''}${formatTime(r.startsAt)} – ${formatTime(r.endsAt)} · Proposée par ${escapeHtml(r.proposedByName)}</p>
+      ${rehearsalAcceptedByHtml(r)}
+      <div class="rehearsal-actions">
+        ${calendarLinksMenuHtml(linkArgs, 'repetition.ics')}
+      </div>
+    </div>
+  `;
+}
+
 async function loadLastChecked() {
   const { last_checked } = await api.get('/api/calendar/last-checked');
   const el = document.getElementById('last-checked');
@@ -199,14 +213,16 @@ function renderCalendar() {
       }
       cell.appendChild(dotsEl);
 
-      cell.addEventListener('click', () => openModal(date, slot, visible, concert));
+      cell.addEventListener('click', () => openModal(date, slot, visible, concert, rehearsal));
 
       const countEl = document.createElement('div');
       countEl.className = 'cell-count';
       countEl.textContent = avail.length + '/' + visible.length;
       cell.appendChild(countEl);
     } else if (concert) {
-      cell.addEventListener('click', () => openModal(date, null, [], concert));
+      cell.addEventListener('click', () => openModal(date, null, [], concert, rehearsal));
+    } else if (rehearsal) {
+      cell.addEventListener('click', () => openModal(date, null, [], null, rehearsal));
     } else {
       cell.classList.add('empty');
       const lbl = document.createElement('div');
@@ -286,7 +302,7 @@ function pollWorkflowStatus(btn, maxMs = 180000, intervalMs = 4000) {
   }, intervalMs);
 }
 
-function openModal(date, slot, visible, concert) {
+function openModal(date, slot, visible, concert, rehearsal) {
   const avail = visible.filter((p) => p.is_available);
   const busy = visible.filter((p) => !p.is_available);
 
@@ -313,6 +329,9 @@ function openModal(date, slot, visible, concert) {
 
   const concertSection = document.getElementById('modal-concert-section');
   concertSection.innerHTML = concert ? concertLinksHtml(concert) : '';
+
+  const rehearsalSection = document.getElementById('modal-rehearsal-section');
+  rehearsalSection.innerHTML = rehearsal ? rehearsalInfoHtml(rehearsal) : '';
 
   const renderPeople = (list, containerId) => {
     const el = document.getElementById(containerId);

@@ -47,6 +47,7 @@ router.post(
       location: location ? location.trim() : null,
       proposedBy: req.user.id,
     });
+    await rehearsalsRepo.upsertVote(rehearsal.id, req.user.id, 'accept');
     discord.notifyAll(
       discord.rehearsalProposedMessage({ userName: req.user.name, startsAt: rehearsal.starts_at, location: rehearsal.location })
     );
