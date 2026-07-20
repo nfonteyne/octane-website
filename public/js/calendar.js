@@ -309,8 +309,9 @@ function openModal(date, slot, visible, concert, rehearsal) {
   currentModalDate = { date, slot };
   const proposeBtn = document.getElementById('modal-propose-rehearsal-btn');
   const availabilitySection = document.getElementById('modal-availability-section');
+  const rehearsalAccepted = rehearsal && rehearsal.votes.some((v) => v.vote === 'accept');
   if (slot) {
-    availabilitySection.style.display = '';
+    availabilitySection.style.display = rehearsalAccepted ? 'none' : '';
     proposeBtn.style.display = '';
     const alreadyProposed = state.rehearsals.some((r) => isoDate(new Date(r.startsAt)) === isoDate(date));
     proposeBtn.disabled = alreadyProposed;
