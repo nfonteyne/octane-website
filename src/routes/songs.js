@@ -91,15 +91,21 @@ router.delete(
 router.post(
   '/:id/tutorials',
   asyncHandler(async (req, res) => {
-    const { instrumentId, url, label } = req.body || {};
-    if (!instrumentId || !url || !url.trim()) {
-      return res.status(400).json({ error: 'instrument_and_url_required' });
+    const { instrumentId, url, content, label } = req.body || {};
+    const trimmedUrl = url && url.trim() ? url.trim() : null;
+    const trimmedContent = content && content.trim() ? content.trim() : null;
+    if (!instrumentId) {
+      return res.status(400).json({ error: 'instrument_required' });
+    }
+    if (!trimmedUrl && !trimmedContent) {
+      return res.status(400).json({ error: 'url_or_content_required' });
     }
     const song = await songsRepo.findById(req.params.id);
     if (!song) return res.status(404).json({ error: 'not_found' });
     const tutorial = await songsRepo.addTutorial(req.params.id, {
       instrumentId,
-      url: url.trim(),
+      url: trimmedUrl,
+      content: trimmedContent,
       label,
       addedBy: req.user.id,
     });

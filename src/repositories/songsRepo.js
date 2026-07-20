@@ -48,7 +48,7 @@ async function remove(id) {
 async function findTutorials(songId) {
   const { rows } = await pool.query(
     `SELECT st.id, st.song_id, st.instrument_id, i.name AS instrument_name,
-            st.url, st.label, st.added_by, st.created_at
+            st.url, st.content, st.label, st.added_by, st.created_at
      FROM song_tutorials st
      JOIN instruments i ON i.id = st.instrument_id
      WHERE st.song_id = $1
@@ -58,12 +58,12 @@ async function findTutorials(songId) {
   return rows;
 }
 
-async function addTutorial(songId, { instrumentId, url, label, addedBy }) {
+async function addTutorial(songId, { instrumentId, url, content, label, addedBy }) {
   const { rows } = await pool.query(
-    `INSERT INTO song_tutorials (song_id, instrument_id, url, label, added_by)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING id, song_id, instrument_id, url, label, added_by, created_at`,
-    [songId, instrumentId, url, label || null, addedBy]
+    `INSERT INTO song_tutorials (song_id, instrument_id, url, content, label, added_by)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id, song_id, instrument_id, url, content, label, added_by, created_at`,
+    [songId, instrumentId, url || null, content || null, label || null, addedBy]
   );
   return rows[0];
 }

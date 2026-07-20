@@ -479,6 +479,25 @@ h3 { font-size: 1rem; margin: 0 0 0.5rem; }
 
 .tutorial-label a { color: var(--accent); text-decoration: none; }
 
+.tutorial-text-wrap { display: flex; flex-direction: column; gap: 0.25rem; }
+
+.tutorial-text {
+  margin: 0;
+  max-height: 4.5em;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.8rem;
+  background: var(--surface-alt, rgba(127, 127, 127, 0.08));
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+}
+
+.tutorial-text.expanded { max-height: none; }
+
+.tutorial-text-toggle { align-self: flex-start; font-size: 0.75rem; padding: 0.15rem 0.5rem; }
+
 .song-body {
   flex: 1 1 auto;
   min-width: 0;
@@ -1198,6 +1217,7 @@ button.calendar-filters-close { display: none; }
 
   .profile-header { flex-direction: column; text-align: center; }
 
+  button.calendar-filters-toggle,
   button.calendar-filters-close { display: inline-flex; }
 
   .calendar-header-actions { width: 100%; }

@@ -79,7 +79,8 @@ function songCardTemplate(song) {
           <label>Instrument
             <select name="instrumentId" required>${instrumentOptions()}</select>
           </label>
-          <label>Lien <input name="url" type="url" required placeholder="https://..."></label>
+          <label>Lien <input name="url" type="url" placeholder="https://..."></label>
+          <label>Texte (paroles, grille d'accords, notes...) <textarea name="content" rows="3" placeholder="Ex: Am - F - C - G"></textarea></label>
           <label>Libellé <input name="label" placeholder="ex: tuto solo"></label>
           <button type="submit">Ajouter le tuto</button>
         </form>
@@ -107,7 +108,31 @@ function editSongCardTemplate(song) {
   `;
 }
 
+function tutorialTextBlockTemplate(content) {
+  return `
+    <div class="tutorial-text-wrap">
+      <pre class="tutorial-text">${escapeHtml(content)}</pre>
+      <button type="button" class="secondary icon-btn tutorial-text-toggle">Voir plus</button>
+    </div>
+  `;
+}
+
 function tutorialCardTemplate(t) {
+  const textBlock = t.content ? tutorialTextBlockTemplate(t.content) : '';
+
+  if (!t.url) {
+    return `
+      <div class="tutorial-card" data-tutorial-id="${t.id}">
+        <div class="tutorial-meta">
+          <span class="tag">${escapeHtml(t.instrument_name)}</span>
+          <div class="tutorial-label">${escapeHtml(t.label || 'Tuto')}</div>
+        </div>
+        ${textBlock}
+        <button class="secondary icon-btn remove-tutorial" data-song-id="${t.song_id}" data-id="${t.id}">Retirer</button>
+      </div>
+    `;
+  }
+
   const thumb = youtubeThumbnailUrl(t.url);
   if (thumb) {
     return `
@@ -120,6 +145,7 @@ function tutorialCardTemplate(t) {
           <span class="tag">${escapeHtml(t.instrument_name)}</span>
           <div class="tutorial-label">${escapeHtml(t.label || 'Tuto')}</div>
         </div>
+        ${textBlock}
         <button class="secondary icon-btn remove-tutorial" data-song-id="${t.song_id}" data-id="${t.id}">Retirer</button>
       </div>
     `;
@@ -131,6 +157,7 @@ function tutorialCardTemplate(t) {
         <span class="tag">${escapeHtml(t.instrument_name)}</span>
         <div class="tutorial-label"><a href="${escapeHtml(t.url)}" target="_blank" rel="noopener">${escapeHtml(t.label || t.url)}</a></div>
       </div>
+      ${textBlock}
       <button class="secondary icon-btn remove-tutorial" data-song-id="${t.song_id}" data-id="${t.id}">Retirer</button>
     </div>
   `;
@@ -195,6 +222,13 @@ async function loadTutorials(songId) {
     container.querySelectorAll('.remove-tutorial').forEach((btn) => {
       btn.addEventListener('click', () => onRemoveTutorial(parseInt(btn.dataset.songId, 10), parseInt(btn.dataset.id, 10)));
     });
+    container.querySelectorAll('.tutorial-text-toggle').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const text = btn.previousElementSibling;
+        const isExpanded = text.classList.toggle('expanded');
+        btn.textContent = isExpanded ? 'Voir moins' : 'Voir plus';
+      });
+    });
   } catch (err) {
     showError(err.message);
   }
@@ -206,9 +240,14 @@ async function onAddTutorial(e) {
   const songId = parseInt(form.dataset.songId, 10);
   const instrumentId = parseInt(form.instrumentId.value, 10);
   const url = form.url.value.trim();
+  const content = form.content.value.trim();
   const label = form.label.value.trim();
+  if (!url && !content) {
+    showError('Renseignez un lien ou un texte pour le tuto.');
+    return;
+  }
   try {
-    await api.post(`/api/songs/${songId}/tutorials`, { instrumentId, url, label });
+    await api.post(`/api/songs/${songId}/tutorials`, { instrumentId, url, content, label });
     form.reset();
     const song = songs.find((s) => s.id === songId);
     if (song) song.tutorial_count += 1;
