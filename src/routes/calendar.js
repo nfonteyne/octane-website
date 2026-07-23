@@ -3,6 +3,7 @@ const calendarRepo = require('../repositories/calendarRepo');
 const usersRepo = require('../repositories/usersRepo');
 const workflowState = require('../lib/calendarWorkflowState');
 const calendarSync = require('../services/calendarSync');
+const { normalizeIcsUrl } = require('../lib/icsUrl');
 const { requireAdmin } = require('../auth/middleware');
 const asyncHandler = require('../lib/asyncHandler');
 
@@ -93,7 +94,7 @@ router.post(
     if (!icsUrl || !icsUrl.trim()) {
       return res.status(400).json({ error: 'ics_url_required' });
     }
-    const trimmedUrl = icsUrl.trim();
+    const trimmedUrl = normalizeIcsUrl(icsUrl.trim());
     try {
       await calendarSync.testFeed(trimmedUrl);
     } catch (err) {
@@ -148,7 +149,7 @@ router.post(
     if (!user) {
       return res.status(404).json({ error: 'user_not_found' });
     }
-    const trimmedUrl = icsUrl.trim();
+    const trimmedUrl = normalizeIcsUrl(icsUrl.trim());
     try {
       await calendarSync.testFeed(trimmedUrl);
     } catch (err) {

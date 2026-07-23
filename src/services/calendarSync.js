@@ -2,6 +2,7 @@ const ical = require('node-ical');
 const calendarRepo = require('../repositories/calendarRepo');
 const { generateSlots, isBusyDuring, widenWindow } = require('../lib/calendarAvailability');
 const { parisWallClockToUTC } = require('../lib/calendarDates');
+const { normalizeIcsUrl } = require('../lib/icsUrl');
 
 const RANGE_DAYS = 105; // slightly more than the 14 weeks generateSlots() covers
 const FETCH_TIMEOUT_MS = 15000;
@@ -13,7 +14,10 @@ async function fetchIcsCalendar(icsUrl) {
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   let text;
   try {
-    const response = await fetch(icsUrl, { signal: controller.signal });
+    // Defensive: normalize here too, not just at add-time in routes/calendar.js,
+    // so a webcal:// URL stored before that fix (or inserted directly) doesn't
+    // keep silently failing every sync.
+    const response = await fetch(normalizeIcsUrl(icsUrl), { signal: controller.signal });
     if (!response.ok) throw new Error(`ICS fetch failed: ${response.status}`);
     text = await response.text();
   } finally {
