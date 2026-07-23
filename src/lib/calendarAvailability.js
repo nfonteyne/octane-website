@@ -8,9 +8,9 @@ const DEFAULT_SLOT_CONFIG = {
   weekday: { startHour: 18, startMinute: 30, endHour: 21, endMinute: 0 },
   weekend: { startHour: 15, startMinute: 0, endHour: 19, endMinute: 0 },
 };
-const MAX_WEEKS = 3;
+const MAX_WEEKS = 4;
 
-// One slot per day for the next `weeks` weeks (capped at 3, same as the rest
+// One slot per day for the next `weeks` weeks (capped at 4, same as the rest
 // of the calendar feature), starting from today's Paris-local calendar date
 // — not the server's own timezone, which may not be Europe/Paris.
 function generateSlots(weeks = MAX_WEEKS, slotConfig = DEFAULT_SLOT_CONFIG) {

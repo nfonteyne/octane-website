@@ -3,7 +3,7 @@ const calendarRepo = require('../repositories/calendarRepo');
 const { generateSlots, isBusyDuring, widenWindow } = require('../lib/calendarAvailability');
 const { parisWallClockToUTC } = require('../lib/calendarDates');
 
-const RANGE_DAYS = 22; // slightly more than the 3 weeks generateSlots() covers
+const RANGE_DAYS = 29; // slightly more than the 4 weeks generateSlots() covers
 const FETCH_TIMEOUT_MS = 15000;
 
 // Fetches one ICS feed and parses it into node-ical's raw component map.
@@ -84,7 +84,7 @@ function dateOnlyToParisSpan(dateOnly) {
 }
 
 // Fetches every registered feed, derives per-person busy/free for each of the
-// next 3 weeks' slots (using the admin-configured rehearsal hours, falling
+// next 4 weeks' slots (using the admin-configured rehearsal hours, falling
 // back to calendarAvailability's defaults if none are set), and ingests the
 // result via calendarRepo.ingestSlots — the same sink the old n8n-webhook flow
 // used to feed. A feed that fails to fetch is logged by id only (never its
@@ -113,7 +113,7 @@ async function syncAvailability() {
     intervalsByUser.set(feed.user_id, existing.concat(result.value));
   });
 
-  const slots = generateSlots(3, slotConfig);
+  const slots = generateSlots(4, slotConfig);
   const slotPayload = slots.map((slot) => {
     // The margin only widens the *check* window (to account for travel time
     // between back-to-back calendar events) — the slot itself, as stored and

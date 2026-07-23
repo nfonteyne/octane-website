@@ -15,7 +15,7 @@ async function loadPeople() {
 }
 
 async function loadSlots() {
-  state.slots = await api.get('/api/calendar/slots?weeks=3');
+  state.slots = await api.get('/api/calendar/slots?weeks=4');
   renderCalendar();
 }
 

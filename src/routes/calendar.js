@@ -22,7 +22,7 @@ router.get(
     // ingested slot (heat-colored by availability ratio on the frontend),
     // not just slots where at least one person happens to be free.
     const minPeople = req.query.min_people !== undefined ? parseInt(req.query.min_people, 10) : 0;
-    const weeks = req.query.weeks !== undefined ? parseInt(req.query.weeks, 10) : 3;
+    const weeks = req.query.weeks !== undefined ? parseInt(req.query.weeks, 10) : 4;
     const personIds = req.query.person_ids
       ? req.query.person_ids.split(',').map(Number).filter((n) => !Number.isNaN(n))
       : null;

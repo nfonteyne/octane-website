@@ -84,8 +84,8 @@ async function ingestSlots(slots) {
   return summary;
 }
 
-async function getSlots({ minPeople = 0, personIds = null, weeks = 3 } = {}) {
-  const cappedWeeks = Math.min(weeks || 3, 3);
+async function getSlots({ minPeople = 0, personIds = null, weeks = 4 } = {}) {
+  const cappedWeeks = Math.min(weeks || 4, 4);
   const now = new Date();
   const end = new Date(now);
   end.setDate(end.getDate() + cappedWeeks * 7);
