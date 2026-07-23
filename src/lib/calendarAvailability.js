@@ -8,11 +8,15 @@ const DEFAULT_SLOT_CONFIG = {
   weekday: { startHour: 18, startMinute: 30, endHour: 21, endMinute: 0 },
   weekend: { startHour: 15, startMinute: 0, endHour: 19, endMinute: 0 },
 };
-const MAX_WEEKS = 4;
+// 14 weeks (98 days) comfortably covers the calendar page's month view, which
+// lets users navigate up to 2 calendar months ahead of the current one — the
+// worst case (today is the 1st of a month, followed by two 31-day months) is
+// ~92 days.
+const MAX_WEEKS = 14;
 
-// One slot per day for the next `weeks` weeks (capped at 4, same as the rest
-// of the calendar feature), starting from today's Paris-local calendar date
-// — not the server's own timezone, which may not be Europe/Paris.
+// One slot per day for the next `weeks` weeks (capped at MAX_WEEKS, same as
+// the rest of the calendar feature), starting from today's Paris-local
+// calendar date — not the server's own timezone, which may not be Europe/Paris.
 function generateSlots(weeks = MAX_WEEKS, slotConfig = DEFAULT_SLOT_CONFIG) {
   const days = Math.min(weeks || MAX_WEEKS, MAX_WEEKS) * 7;
   const parisToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date());

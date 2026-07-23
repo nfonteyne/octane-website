@@ -5,6 +5,8 @@ let state = {
   rehearsals: [],
   upcomingConcerts: [],
   concertHours: { start: '19:00', end: '22:00' },
+  viewYear: null,
+  viewMonth: null, // 0-indexed, like Date#getMonth()
 };
 let me = null;
 let currentModalDate = null;
@@ -15,8 +17,49 @@ async function loadPeople() {
 }
 
 async function loadSlots() {
-  state.slots = await api.get('/api/calendar/slots?weeks=4');
+  state.slots = await api.get('/api/calendar/slots?weeks=14');
   renderCalendar();
+}
+
+// Navigation is bounded to the current month through 2 months ahead — that
+// range is exactly what loadSlots() fetches (14 weeks from today), so every
+// navigable month always has data without an extra fetch per month change.
+function monthNavBounds() {
+  const today = new Date();
+  return {
+    minYear: today.getFullYear(),
+    minMonth: today.getMonth(),
+    maxYear: today.getFullYear(),
+    maxMonth: today.getMonth() + 2,
+  };
+}
+
+function changeMonth(delta) {
+  let month = state.viewMonth + delta;
+  let year = state.viewYear;
+  while (month < 0) { month += 12; year -= 1; }
+  while (month > 11) { month -= 12; year += 1; }
+
+  const { minYear, minMonth, maxYear, maxMonth } = monthNavBounds();
+  const key = year * 12 + month;
+  if (key < minYear * 12 + minMonth || key > maxYear * 12 + maxMonth) return;
+
+  state.viewYear = year;
+  state.viewMonth = month;
+  renderCalendar();
+}
+
+function updateMonthNav() {
+  const { minYear, minMonth, maxYear, maxMonth } = monthNavBounds();
+  const key = state.viewYear * 12 + state.viewMonth;
+
+  document.getElementById('btn-month-prev').disabled = key <= minYear * 12 + minMonth;
+  document.getElementById('btn-month-next').disabled = key >= maxYear * 12 + maxMonth;
+
+  const label = new Date(state.viewYear, state.viewMonth, 1).toLocaleDateString('fr-FR', {
+    month: 'long', year: 'numeric',
+  });
+  document.getElementById('month-label').textContent = label;
 }
 
 async function loadRehearsals() {
@@ -119,28 +162,40 @@ function renderCalendar() {
   const concertsByDate = new Map();
   for (const c of state.upcomingConcerts) concertsByDate.set(isoDate(new Date(c.concert_date)), c);
 
-  // Grid starts on the Monday of the current week so columns align Mon->Sun.
-  const start = new Date(today);
-  const dow = start.getDay();
-  start.setDate(start.getDate() + (dow === 0 ? -6 : 1 - dow));
+  updateMonthNav();
 
-  const daysBeforeToday = Math.round((today - start) / 86400000);
-  const totalDays = Math.ceil((daysBeforeToday + 28) / 7) * 7;
+  const viewYear = state.viewYear;
+  const viewMonth = state.viewMonth;
+
+  // Grid starts on the Monday on/before the 1st so columns align Mon->Sun,
+  // and spans full weeks so trailing/leading days of neighboring months
+  // fill out the last/first row — same visual as Google Calendar's month view.
+  const firstOfMonth = new Date(viewYear, viewMonth, 1);
+  const firstDow = firstOfMonth.getDay();
+  const leadingDays = firstDow === 0 ? 6 : firstDow - 1;
+  const start = new Date(viewYear, viewMonth, 1 - leadingDays);
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const totalDays = Math.ceil((leadingDays + daysInMonth) / 7) * 7;
 
   for (let i = 0; i < totalDays; i++) {
     const date = new Date(start);
     date.setDate(start.getDate() + i);
 
+    const isOutsideMonth = date.getMonth() !== viewMonth;
     const isPastDay = date < today;
-    const isBeyondRange = i >= daysBeforeToday + 28;
     const isToday = date.getTime() === today.getTime();
     const slot = slotMap.get(isoDate(date));
 
     const cell = document.createElement('div');
     cell.className = 'cal-cell' + (isToday ? ' today' : '');
 
-    if (isBeyondRange) {
-      cell.classList.add('empty');
+    if (isOutsideMonth) {
+      cell.classList.add('empty', 'outside-month');
+      const dateLabel = document.createElement('div');
+      dateLabel.className = 'cell-date';
+      dateLabel.innerHTML = `<span class="day-num">${date.getDate()}</span>`;
+      cell.appendChild(dateLabel);
       grid.appendChild(cell);
       continue;
     }
@@ -638,6 +693,13 @@ async function onRemoveMyFeed(feedId) {
 
 (async function init() {
   me = await initNav('calendar');
+
+  const today = new Date();
+  state.viewYear = today.getFullYear();
+  state.viewMonth = today.getMonth();
+
+  document.getElementById('btn-month-prev').addEventListener('click', () => changeMonth(-1));
+  document.getElementById('btn-month-next').addEventListener('click', () => changeMonth(1));
 
   document.getElementById('modal-close').addEventListener('click', closeModal);
   document.getElementById('modal-overlay').addEventListener('click', (e) => {

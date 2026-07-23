@@ -986,6 +986,24 @@ button.calendar-filters-close { display: none; }
 
 .calendar-main { min-width: 0; }
 
+.calendar-month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.calendar-month-label {
+  font-weight: 600;
+  font-size: 1.05rem;
+  min-width: 10ch;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.calendar-month-nav button:disabled { opacity: 0.35; cursor: default; }
+
 .calendar-header-row {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -1022,6 +1040,7 @@ button.calendar-filters-close { display: none; }
 .cal-cell.empty { background: transparent; border-style: dashed; color: var(--muted); }
 .cal-cell.has-slot { cursor: pointer; }
 .cal-cell.has-slot:hover { border-color: var(--accent); }
+.cal-cell.outside-month { border-style: none; opacity: 0.35; }
 
 .cell-date { font-weight: 600; color: var(--muted); }
 .cell-date .day-num { color: var(--text); font-size: 0.95rem; margin-right: 0.25rem; }

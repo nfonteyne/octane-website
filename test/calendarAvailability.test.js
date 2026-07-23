@@ -2,14 +2,14 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { generateSlots, isBusyDuring, widenWindow } = require('../src/lib/calendarAvailability');
 
-test('generateSlots: default 4 weeks produces one slot per day for 28 days', () => {
+test('generateSlots: default 14 weeks produces one slot per day for 98 days', () => {
   const slots = generateSlots();
-  assert.equal(slots.length, 28);
+  assert.equal(slots.length, 98);
 });
 
-test('generateSlots: caps weeks at 4 even if a larger value is requested', () => {
-  const slots = generateSlots(10);
-  assert.equal(slots.length, 28);
+test('generateSlots: caps weeks at 14 even if a larger value is requested', () => {
+  const slots = generateSlots(20);
+  assert.equal(slots.length, 98);
 });
 
 test('generateSlots: every slot has upper strictly after lower', () => {
