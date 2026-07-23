@@ -125,21 +125,21 @@ function renderCalendar() {
   start.setDate(start.getDate() + (dow === 0 ? -6 : 1 - dow));
 
   const daysBeforeToday = Math.round((today - start) / 86400000);
-  const totalDays = Math.ceil((daysBeforeToday + 21) / 7) * 7;
+  const totalDays = Math.ceil((daysBeforeToday + 28) / 7) * 7;
 
   for (let i = 0; i < totalDays; i++) {
     const date = new Date(start);
     date.setDate(start.getDate() + i);
 
     const isPastDay = date < today;
-    const isBeyond21 = i >= daysBeforeToday + 21;
+    const isBeyondRange = i >= daysBeforeToday + 28;
     const isToday = date.getTime() === today.getTime();
     const slot = slotMap.get(isoDate(date));
 
     const cell = document.createElement('div');
     cell.className = 'cal-cell' + (isToday ? ' today' : '');
 
-    if (isBeyond21) {
+    if (isBeyondRange) {
       cell.classList.add('empty');
       grid.appendChild(cell);
       continue;
