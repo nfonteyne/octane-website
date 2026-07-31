@@ -48,6 +48,14 @@ router.get(
   })
 );
 
+router.get(
+  '/me/ics-feed-url',
+  asyncHandler(async (req, res) => {
+    const token = await usersRepo.ensureIcsToken(req.user.id);
+    res.json({ path: `/calendar/feed/rehearsals/${token}.ics` });
+  })
+);
+
 router.patch(
   '/me/display-name',
   asyncHandler(async (req, res) => {

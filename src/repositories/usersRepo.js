@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const pool = require('../db/pool');
 
 const PROFILE_FIELDS =
@@ -72,4 +73,31 @@ async function findAllWithActivity() {
   return rows;
 }
 
-module.exports = { findById, upsertFromClaims, updateDisplayName, getActivityStats, findAllWithActivity };
+// Lazily creates the user's rehearsal-feed secret on first request, rather
+// than at signup — most users will never subscribe to the ICS feed.
+async function ensureIcsToken(userId) {
+  const { rows } = await pool.query('SELECT ics_token FROM users WHERE id = $1', [userId]);
+  if (rows[0] && rows[0].ics_token) return rows[0].ics_token;
+
+  const token = crypto.randomBytes(24).toString('hex');
+  const { rows: updated } = await pool.query(
+    'UPDATE users SET ics_token = $2 WHERE id = $1 RETURNING ics_token',
+    [userId, token]
+  );
+  return updated[0].ics_token;
+}
+
+async function findByIcsToken(token) {
+  const { rows } = await pool.query(`SELECT ${PROFILE_FIELDS} FROM users WHERE ics_token = $1`, [token]);
+  return rows[0] || null;
+}
+
+module.exports = {
+  findById,
+  upsertFromClaims,
+  updateDisplayName,
+  getActivityStats,
+  findAllWithActivity,
+  ensureIcsToken,
+  findByIcsToken,
+};

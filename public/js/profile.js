@@ -78,6 +78,27 @@ async function onRemoveMyFeed(feedId) {
   }
 }
 
+async function loadIcsFeedUrl() {
+  const { path } = await api.get('/api/users/me/ics-feed-url');
+  const httpsUrl = `${window.location.origin}${path}`;
+  const webcalUrl = `webcal://${window.location.host}${path}`;
+  document.getElementById('ics-feed-url').value = webcalUrl;
+  document.getElementById('ics-feed-open-link').href = webcalUrl;
+  document.getElementById('copy-ics-feed-btn').dataset.url = httpsUrl;
+}
+
+async function onCopyIcsFeedUrl(e) {
+  const btn = e.target;
+  try {
+    await navigator.clipboard.writeText(btn.dataset.url);
+    const original = btn.textContent;
+    btn.textContent = 'Copié !';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  } catch (err) {
+    showError("Impossible de copier le lien : " + err.message);
+  }
+}
+
 async function onSaveDisplayName(e) {
   e.preventDefault();
   const form = e.target;
@@ -158,6 +179,20 @@ async function onResetDisplayName() {
         <p class="note"><a href="/calendar-ics-help.html">Comment trouver mon lien ICS ?</a></p>
       </div>
 
+      <h2>Répétitions dans mon calendrier</h2>
+      <p class="note">
+        Abonnez-vous à ce lien depuis Google Calendar, Apple Calendar ou Outlook pour voir les répétitions
+        (proposées et confirmées) directement dans votre calendrier personnel, mises à jour automatiquement.
+        Ce lien est personnel, ne le partagez pas.
+      </p>
+      <div class="panel">
+        <form class="inline-form" onsubmit="return false">
+          <input id="ics-feed-url" type="text" readonly>
+          <button type="button" class="secondary icon-btn" id="copy-ics-feed-btn">Copier</button>
+          <a id="ics-feed-open-link" class="pill-link">S'abonner</a>
+        </form>
+      </div>
+
       <div class="panel">
         <p class="empty">
           Identité gérée par Authentik — pour changer votre email ou mot de passe,
@@ -172,7 +207,9 @@ async function onResetDisplayName() {
     const resetBtn = document.getElementById('reset-display-name-btn');
     if (resetBtn) resetBtn.addEventListener('click', onResetDisplayName);
     document.getElementById('add-my-feed-form').addEventListener('submit', onAddMyFeed);
+    document.getElementById('copy-ics-feed-btn').addEventListener('click', onCopyIcsFeedUrl);
     await loadMyFeeds();
+    await loadIcsFeedUrl();
   } catch (err) {
     showError(err.message);
   }

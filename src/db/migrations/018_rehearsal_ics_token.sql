@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN ics_token TEXT UNIQUE;

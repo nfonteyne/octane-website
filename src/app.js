@@ -4,6 +4,7 @@ const sessionMiddleware = require('./auth/session');
 const authRoutes = require('./auth/routes');
 const { attachUser, requireAuth } = require('./auth/middleware');
 const apiRouter = require('./routes');
+const calendarFeedRoutes = require('./routes/calendarFeed');
 
 function createApp() {
   const app = express();
@@ -18,6 +19,10 @@ function createApp() {
   app.use(sessionMiddleware);
   app.use('/auth', authRoutes);
   app.use(attachUser);
+
+  // Unauthenticated: subscribed to directly by calendar apps via a secret
+  // per-user token, not the browser session (see routes/calendarFeed.js).
+  app.use('/calendar/feed', calendarFeedRoutes);
 
   app.use('/api', requireAuth, apiRouter);
   app.use(requireAuth, express.static(path.join(__dirname, '../public')));
