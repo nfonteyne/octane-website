@@ -40,15 +40,22 @@ function foldLine(line) {
   return chunks.map((chunk, i) => (i === 0 ? chunk : ` ${chunk}`)).join('\r\n');
 }
 
-function rehearsalToEvent(rehearsal, { threshold, baseUrl }) {
+function rehearsalToEvent(rehearsal, { threshold, baseUrl, allUsers }) {
   const status = computeRehearsalStatus(rehearsal.votes, threshold);
   const icsStatus = status === 'confirmed' ? 'CONFIRMED' : 'TENTATIVE';
   const summary = status === 'confirmed' ? 'Répétition' : 'Répétition (proposition)';
   const voteUrl = `${baseUrl}/calendar.html?rehearsalId=${rehearsal.id}`;
+
   const accepted = rehearsal.votes.filter((v) => v.vote === 'accept').map((v) => v.name);
+  const refused = rehearsal.votes.filter((v) => v.vote === 'reject').map((v) => v.name);
+  const votedUserIds = new Set(rehearsal.votes.map((v) => v.userId));
+  const pending = allUsers.filter((u) => !votedUserIds.has(u.id)).map((u) => u.name);
+
   const description = [
     `Votez ici : ${voteUrl}`,
     accepted.length ? `Ont accepté : ${accepted.join(', ')}` : "Personne n'a encore accepté.",
+    refused.length ? `Ont refusé : ${refused.join(', ')}` : "Personne n'a refusé.",
+    pending.length ? `En attente : ${pending.join(', ')}` : "Tout le monde a voté.",
   ].join('\n');
 
   const lines = [
@@ -67,7 +74,7 @@ function rehearsalToEvent(rehearsal, { threshold, baseUrl }) {
   return lines;
 }
 
-function buildRehearsalsFeed(rehearsals, { threshold, baseUrl }) {
+function buildRehearsalsFeed(rehearsals, { threshold, baseUrl, allUsers }) {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -75,7 +82,7 @@ function buildRehearsalsFeed(rehearsals, { threshold, baseUrl }) {
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'X-WR-CALNAME:Répétitions Octane',
-    ...rehearsals.flatMap((r) => rehearsalToEvent(r, { threshold, baseUrl })),
+    ...rehearsals.flatMap((r) => rehearsalToEvent(r, { threshold, baseUrl, allUsers })),
     'END:VCALENDAR',
   ];
   return lines.map(foldLine).join('\r\n');

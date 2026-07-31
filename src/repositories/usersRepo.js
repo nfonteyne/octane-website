@@ -92,6 +92,13 @@ async function findByIcsToken(token) {
   return rows[0] || null;
 }
 
+// Minimal id/name list — used to work out who *hasn't* voted on a rehearsal
+// yet (the ICS feed's "en attente" list), so no need for the full profile.
+async function findAllNames() {
+  const { rows } = await pool.query('SELECT id, name FROM users ORDER BY name');
+  return rows;
+}
+
 module.exports = {
   findById,
   upsertFromClaims,
@@ -100,4 +107,5 @@ module.exports = {
   findAllWithActivity,
   ensureIcsToken,
   findByIcsToken,
+  findAllNames,
 };

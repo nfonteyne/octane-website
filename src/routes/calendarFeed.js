@@ -17,12 +17,16 @@ router.get(
     const user = await usersRepo.findByIcsToken(req.params.token);
     if (!user) return res.status(404).send('Not found');
 
-    const [rehearsals, settings] = await Promise.all([rehearsalsRepo.findUpcoming(), calendarRepo.getSlotSettings()]);
+    const [rehearsals, settings, allUsers] = await Promise.all([
+      rehearsalsRepo.findUpcoming(),
+      calendarRepo.getSlotSettings(),
+      usersRepo.findAllNames(),
+    ]);
     // req.protocol honors X-Forwarded-Proto here — see app.set('trust proxy', 1) in app.js.
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     res
       .type('text/calendar; charset=utf-8')
-      .send(buildRehearsalsFeed(rehearsals, { threshold: settings.rehearsalConfirmThreshold, baseUrl }));
+      .send(buildRehearsalsFeed(rehearsals, { threshold: settings.rehearsalConfirmThreshold, baseUrl, allUsers }));
   })
 );
 
