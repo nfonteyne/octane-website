@@ -5,6 +5,7 @@
 const express = require('express');
 const usersRepo = require('../repositories/usersRepo');
 const rehearsalsRepo = require('../repositories/rehearsalsRepo');
+const calendarRepo = require('../repositories/calendarRepo');
 const { buildRehearsalsFeed } = require('../lib/icsFeed');
 const asyncHandler = require('../lib/asyncHandler');
 
@@ -16,10 +17,12 @@ router.get(
     const user = await usersRepo.findByIcsToken(req.params.token);
     if (!user) return res.status(404).send('Not found');
 
-    const rehearsals = await rehearsalsRepo.findUpcoming();
+    const [rehearsals, settings] = await Promise.all([rehearsalsRepo.findUpcoming(), calendarRepo.getSlotSettings()]);
+    // req.protocol honors X-Forwarded-Proto here — see app.set('trust proxy', 1) in app.js.
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
     res
       .type('text/calendar; charset=utf-8')
-      .send(buildRehearsalsFeed(rehearsals));
+      .send(buildRehearsalsFeed(rehearsals, { threshold: settings.rehearsalConfirmThreshold, baseUrl }));
   })
 );
 

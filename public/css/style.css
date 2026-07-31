@@ -1528,6 +1528,13 @@ button.calendar-filters-close { display: none; }
 
 .rehearsal-row:last-child { border-bottom: none; }
 
+.rehearsal-row.highlight {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 4px;
+  transition: outline-color 3s ease;
+}
+
 .rehearsal-actions {
   display: flex;
   align-items: center;

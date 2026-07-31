@@ -189,6 +189,7 @@ async function loadSlotSettingsForm() {
   form.marginMinutes.value = settings.marginMinutes;
   form.concertStart.value = settings.concertStart;
   form.concertEnd.value = settings.concertEnd;
+  form.rehearsalConfirmThreshold.value = settings.rehearsalConfirmThreshold;
 }
 
 async function onSaveSlotSettings(e) {
@@ -205,6 +206,7 @@ async function onSaveSlotSettings(e) {
       marginMinutes: parseInt(form.marginMinutes.value, 10),
       concertStart: form.concertStart.value,
       concertEnd: form.concertEnd.value,
+      rehearsalConfirmThreshold: parseInt(form.rehearsalConfirmThreshold.value, 10),
     });
     statusEl.textContent = 'Horaires enregistrés.';
   } catch (err) {
@@ -266,6 +268,14 @@ async function onSaveSlotSettings(e) {
           <p class="note">
             Comme la date d'un concert n'a pas d'heure enregistrée, ces horaires sont utilisés pour
             pré-remplir les liens « ajouter à mon agenda » sur <code>/calendar.html</code> et <code>/concerts.html</code>.
+          </p>
+          <label>Seuil de confirmation d'une répétition (votes « accepter »)
+            <input type="number" name="rehearsalConfirmThreshold" min="1" max="50" required>
+          </label>
+          <p class="note">
+            Une répétition proposée reste une « suggestion » tant que ce nombre de votes « accepter »
+            n'est pas atteint ; elle passe ensuite en répétition confirmée (dans l'application et dans le
+            flux ICS).
           </p>
           <p class="note" id="slot-settings-status"></p>
           <button type="submit">Enregistrer</button>

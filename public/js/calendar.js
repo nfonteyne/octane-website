@@ -104,11 +104,17 @@ function concertLinksHtml(concert) {
   `;
 }
 
+function rehearsalStatusLabel(r) {
+  if (r.status === 'confirmed') return 'Répétition confirmée';
+  const accepted = r.votes.filter((v) => v.vote === 'accept').length;
+  return `Suggestion de répétition (${accepted}/${r.confirmThreshold} votes)`;
+}
+
 function rehearsalInfoHtml(r) {
   const linkArgs = { uid: `rehearsal-${r.id}`, title: 'Répétition Octane', startISO: r.startsAt, endISO: r.endsAt, location: r.location };
   return `
     <div class="modal-section">
-      <div class="modal-section-title">Répétition proposée</div>
+      <div class="modal-section-title">${escapeHtml(rehearsalStatusLabel(r))}</div>
       <p class="note" style="margin:0.25rem 0 0.5rem">${r.location ? escapeHtml(r.location) + ' · ' : ''}${formatTime(r.startsAt)} – ${formatTime(r.endsAt)} · Proposée par ${escapeHtml(r.proposedByName)}</p>
       ${rehearsalAcceptedByHtml(r)}
       <div class="rehearsal-actions">
@@ -364,9 +370,9 @@ function openModal(date, slot, visible, concert, rehearsal) {
   currentModalDate = { date, slot };
   const proposeBtn = document.getElementById('modal-propose-rehearsal-btn');
   const availabilitySection = document.getElementById('modal-availability-section');
-  const rehearsalAccepted = rehearsal && rehearsal.votes.some((v) => v.vote === 'accept');
+  const rehearsalConfirmed = rehearsal && rehearsal.status === 'confirmed';
   if (slot) {
-    availabilitySection.style.display = rehearsalAccepted ? 'none' : '';
+    availabilitySection.style.display = rehearsalConfirmed ? 'none' : '';
     proposeBtn.style.display = '';
     const alreadyProposed = state.rehearsals.some((r) => isoDate(new Date(r.startsAt)) === isoDate(date));
     proposeBtn.disabled = alreadyProposed;
@@ -499,6 +505,7 @@ function rehearsalRowTemplate(r) {
   return `
     <div class="rehearsal-row" data-rehearsal-id="${r.id}">
       <div>
+        <span class="vote-badge ${r.status === 'confirmed' ? 'accept' : ''}">${escapeHtml(rehearsalStatusLabel(r))}</span>
         <div class="card-title">${formatDatetime(r.startsAt)} – ${formatTime(r.endsAt)}</div>
         <div class="card-subtitle">${r.location ? `${escapeHtml(r.location)} · ` : ''}Proposée par ${escapeHtml(r.proposedByName)}</div>
         ${rehearsalAcceptedByHtml(r)}
@@ -752,7 +759,22 @@ async function onRemoveMyFeed(feedId) {
     await loadSlots();
     await loadLastChecked();
     await loadMyFeeds();
+    jumpToRehearsalFromUrl();
   } catch (err) {
     showError(err.message);
   }
 })();
+
+// Supports the "Votez ici" link embedded in the ICS feed (calendar.html?rehearsalId=N):
+// scroll straight to that rehearsal's row in the list and highlight it briefly.
+function jumpToRehearsalFromUrl() {
+  const rehearsalId = new URLSearchParams(window.location.search).get('rehearsalId');
+  if (!rehearsalId) return;
+  const row = document.querySelector(`.rehearsal-row[data-rehearsal-id="${rehearsalId}"]`);
+  if (!row) return;
+  const details = row.closest('details');
+  if (details) details.open = true;
+  row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  row.classList.add('highlight');
+  setTimeout(() => row.classList.remove('highlight'), 3000);
+}

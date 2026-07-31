@@ -205,7 +205,7 @@ function parseTime(hhmmss) {
 
 async function getSlotSettings() {
   const { rows } = await pool.query(
-    'SELECT weekday_start, weekday_end, weekend_start, weekend_end, margin_minutes, concert_start, concert_end FROM calendar_settings WHERE id = 1'
+    'SELECT weekday_start, weekday_end, weekend_start, weekend_end, margin_minutes, concert_start, concert_end, rehearsal_confirm_threshold FROM calendar_settings WHERE id = 1'
   );
   const row = rows[0];
   const weekdayStart = parseTime(row.weekday_start);
@@ -219,17 +219,18 @@ async function getSlotSettings() {
     weekend: { startHour: weekendStart.hour, startMinute: weekendStart.minute, endHour: weekendEnd.hour, endMinute: weekendEnd.minute },
     marginMinutes: row.margin_minutes,
     concert: { startHour: concertStart.hour, startMinute: concertStart.minute, endHour: concertEnd.hour, endMinute: concertEnd.minute },
+    rehearsalConfirmThreshold: row.rehearsal_confirm_threshold,
   };
 }
 
-async function updateSlotSettings({ weekdayStart, weekdayEnd, weekendStart, weekendEnd, marginMinutes, concertStart, concertEnd }) {
+async function updateSlotSettings({ weekdayStart, weekdayEnd, weekendStart, weekendEnd, marginMinutes, concertStart, concertEnd, rehearsalConfirmThreshold }) {
   const { rows } = await pool.query(
     `UPDATE calendar_settings
      SET weekday_start = $1, weekday_end = $2, weekend_start = $3, weekend_end = $4, margin_minutes = $5,
-         concert_start = $6, concert_end = $7
+         concert_start = $6, concert_end = $7, rehearsal_confirm_threshold = $8
      WHERE id = 1
-     RETURNING weekday_start, weekday_end, weekend_start, weekend_end, margin_minutes, concert_start, concert_end`,
-    [weekdayStart, weekdayEnd, weekendStart, weekendEnd, marginMinutes, concertStart, concertEnd]
+     RETURNING weekday_start, weekday_end, weekend_start, weekend_end, margin_minutes, concert_start, concert_end, rehearsal_confirm_threshold`,
+    [weekdayStart, weekdayEnd, weekendStart, weekendEnd, marginMinutes, concertStart, concertEnd, rehearsalConfirmThreshold]
   );
   return rows[0];
 }

@@ -187,6 +187,7 @@ router.get(
       marginMinutes: settings.marginMinutes,
       concertStart: formatTime(settings.concert.startHour, settings.concert.startMinute),
       concertEnd: formatTime(settings.concert.endHour, settings.concert.endMinute),
+      rehearsalConfirmThreshold: settings.rehearsalConfirmThreshold,
     });
   })
 );
@@ -213,7 +214,7 @@ router.patch(
   '/settings',
   requireAdmin,
   asyncHandler(async (req, res) => {
-    const { weekdayStart, weekdayEnd, weekendStart, weekendEnd, marginMinutes, concertStart, concertEnd } = req.body || {};
+    const { weekdayStart, weekdayEnd, weekendStart, weekendEnd, marginMinutes, concertStart, concertEnd, rehearsalConfirmThreshold } = req.body || {};
     const times = { weekdayStart, weekdayEnd, weekendStart, weekendEnd, concertStart, concertEnd };
     for (const [key, value] of Object.entries(times)) {
       if (!TIME_RE.test(value || '')) {
@@ -233,8 +234,12 @@ router.patch(
     if (!Number.isInteger(margin) || margin < 0 || margin > 180) {
       return res.status(400).json({ error: 'invalid_margin_minutes' });
     }
+    const threshold = Number(rehearsalConfirmThreshold);
+    if (!Number.isInteger(threshold) || threshold < 1 || threshold > 50) {
+      return res.status(400).json({ error: 'invalid_rehearsal_confirm_threshold' });
+    }
 
-    const values = { ...times, marginMinutes: margin };
+    const values = { ...times, marginMinutes: margin, rehearsalConfirmThreshold: threshold };
     await calendarRepo.updateSlotSettings(values);
     res.json(values);
   })

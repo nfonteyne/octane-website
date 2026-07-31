@@ -1,14 +1,17 @@
 const express = require('express');
 const rehearsalsRepo = require('../repositories/rehearsalsRepo');
+const calendarRepo = require('../repositories/calendarRepo');
 const discord = require('../lib/discord');
 const asyncHandler = require('../lib/asyncHandler');
+const { computeRehearsalStatus } = require('../lib/rehearsalStatus');
 
 const router = express.Router();
 
 router.get(
   '/',
   asyncHandler(async (req, res) => {
-    const rehearsals = await rehearsalsRepo.findUpcoming();
+    const [rehearsals, settings] = await Promise.all([rehearsalsRepo.findUpcoming(), calendarRepo.getSlotSettings()]);
+    const threshold = settings.rehearsalConfirmThreshold;
     res.json(
       rehearsals.map((r) => ({
         id: r.id,
@@ -18,6 +21,8 @@ router.get(
         proposedBy: r.proposed_by,
         proposedByName: r.proposed_by_name,
         votes: r.votes,
+        status: computeRehearsalStatus(r.votes, threshold),
+        confirmThreshold: threshold,
       }))
     );
   })
