@@ -17,6 +17,29 @@ function escapeText(text) {
     .replace(/\r?\n/g, '\\n');
 }
 
+// Per RFC 5545 §3.1: content lines longer than 75 octets must be folded —
+// split across multiple physical lines joined by CRLF + a single leading
+// space. Without this, some clients (observed with Google Calendar) silently
+// drop the whole property instead of just displaying it unwrapped. The split
+// is done on UTF-8 byte boundaries (not JS string length) so multi-byte
+// characters (e.g. accented names) are never cut in half.
+function foldLine(line) {
+  const bytes = Buffer.from(line, 'utf8');
+  if (bytes.length <= 75) return line;
+
+  const chunks = [];
+  let start = 0;
+  let limit = 75;
+  while (start < bytes.length) {
+    let end = Math.min(start + limit, bytes.length);
+    while (end < bytes.length && (bytes[end] & 0xc0) === 0x80) end--;
+    chunks.push(bytes.slice(start, end).toString('utf8'));
+    start = end;
+    limit = 74; // continuation lines reserve 1 octet for the leading space
+  }
+  return chunks.map((chunk, i) => (i === 0 ? chunk : ` ${chunk}`)).join('\r\n');
+}
+
 function rehearsalToEvent(rehearsal, { threshold, baseUrl }) {
   const status = computeRehearsalStatus(rehearsal.votes, threshold);
   const icsStatus = status === 'confirmed' ? 'CONFIRMED' : 'TENTATIVE';
@@ -55,7 +78,7 @@ function buildRehearsalsFeed(rehearsals, { threshold, baseUrl }) {
     ...rehearsals.flatMap((r) => rehearsalToEvent(r, { threshold, baseUrl })),
     'END:VCALENDAR',
   ];
-  return lines.join('\r\n');
+  return lines.map(foldLine).join('\r\n');
 }
 
 module.exports = { buildRehearsalsFeed };
